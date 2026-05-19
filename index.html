@@ -441,7 +441,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(4px);
             z-index: 200;
             pointer-events: auto;
             opacity: 0;
@@ -459,7 +460,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(5, 5, 16, 0.97);
+            background: rgba(5, 5, 16, 0.98);
             border: 2px solid #ff00ff;
             border-radius: 15px;
             padding: 25px 20px;
@@ -538,8 +539,13 @@
             max-width: 200px;
         }
 
-        .info-card-close:active {
+        .info-card-close:hover {
             background: rgba(255, 0, 255, 0.3);
+            transform: scale(1.02);
+        }
+
+        .info-card-close:active {
+            background: rgba(255, 0, 255, 0.4);
             transform: scale(0.95);
             box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
         }
@@ -584,7 +590,7 @@
         <div class="info-card-years" id="infoYears"></div>
         <div class="info-card-cause" id="infoCause"></div>
         <div class="info-card-description" id="infoDescription"></div>
-        <button class="info-card-close" id="infoClose">ЗАКРЫТЬ</button>
+        <button class="info-card-close" id="infoCloseBtn">ЗАКРЫТЬ</button>
     </div>
 
     <div class="bottom-bar" id="bottomBar">
@@ -630,7 +636,6 @@
         let touchStartDistance = 0;
         let initialCameraPosition = null;
         let audioContext = null;
-        let pendingRaycast = null;
         
         // --- Three.js setup ---
         const canvas = document.getElementById('canvas3D');
@@ -694,6 +699,7 @@
         const infoYears = document.getElementById('infoYears');
         const infoCause = document.getElementById('infoCause');
         const infoDescription = document.getElementById('infoDescription');
+        const infoCloseBtn = document.getElementById('infoCloseBtn');
         
         // --- Helpers ---
         function showLoading(show) {
@@ -716,21 +722,31 @@
             counterEl.textContent = '🪦 ' + tombstones.length;
         }
         
+        // Функция закрытия карточки - улучшена для надёжности
+        function hideInfoCard(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            infoCard.classList.remove('visible');
+            infoOverlay.classList.remove('visible');
+            console.log('Карточка закрыта');
+        }
+        
         function showInfoCard(productId) {
             const p = PRODUCTS[productId];
+            if (!p) return;
+            
             infoEmoji.textContent = p.emoji;
             infoName.textContent = p.name;
             infoYears.textContent = '📅 ' + p.years;
             infoCause.textContent = '💀 ' + p.cause;
             infoDescription.textContent = p.description;
+            
             infoCard.classList.add('visible');
             infoOverlay.classList.add('visible');
             vibrate(30);
-        }
-        
-        function hideInfoCard() {
-            infoCard.classList.remove('visible');
-            infoOverlay.classList.remove('visible');
+            console.log('Открыта карточка:', p.name);
         }
 
         // --- Sound Effect ---
@@ -783,66 +799,84 @@
             return texture.clone();
         }
 
-        // --- Tombstone Creation ---
+        // --- Tombstone Creation (все части надгробия помечаем как кликабельные) ---
         function createTombstoneMesh(productId) {
             const p = PRODUCTS[productId];
             const group = new THREE.Group();
             const color = new THREE.Color(p.color);
             
+            // Постамент
             const baseGeo = new THREE.BoxGeometry(2.5, 0.5, 1.2);
             const baseMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.3, metalness: 0.7 });
             const base = new THREE.Mesh(baseGeo, baseMat);
             base.position.y = 0.25;
+            base.userData = { isTombstonePart: true, productId: productId };
             group.add(base);
             
+            // Неоновая полоса
             const stripeGeo = new THREE.BoxGeometry(2.6, 0.08, 1.3);
             const stripeMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 1.2, roughness: 0.1, metalness: 0.9 });
             const stripe = new THREE.Mesh(stripeGeo, stripeMat);
             stripe.position.y = 0.5;
+            stripe.userData = { isTombstonePart: true, productId: productId };
             group.add(stripe);
             
+            // Основная плита
             const stoneGeo = new THREE.BoxGeometry(2, 3, 0.5);
             const nameTexture = createTextureWithText(p.name, p.color, '#1a1a2e');
             const stoneMat = new THREE.MeshStandardMaterial({ map: nameTexture, roughness: 0.4, metalness: 0.4 });
             const stone = new THREE.Mesh(stoneGeo, stoneMat);
             stone.position.y = 2;
+            stone.userData = { isTombstonePart: true, productId: productId };
             group.add(stone);
             
+            // Крест вертикальный
             const crossVertical = new THREE.BoxGeometry(0.15, 0.8, 0.15);
             const crossHorizontal = new THREE.BoxGeometry(0.5, 0.15, 0.15);
             const crossMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 1, roughness: 0.2, metalness: 0.8 });
             const crossV = new THREE.Mesh(crossVertical, crossMat);
             crossV.position.y = 3.7;
+            crossV.userData = { isTombstonePart: true, productId: productId };
             group.add(crossV);
             const crossH = new THREE.Mesh(crossHorizontal, crossMat);
             crossH.position.set(0, 3.5, 0);
+            crossH.userData = { isTombstonePart: true, productId: productId };
             group.add(crossH);
             
+            // Неоновая рамка
             const frameGeo = new THREE.BoxGeometry(2.2, 3.2, 0.05);
             const frameMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 2.5, roughness: 0.1, metalness: 0.9 });
             const frame = new THREE.Mesh(frameGeo, frameMat);
             frame.position.set(0, 2, -0.25);
+            frame.userData = { isTombstonePart: true, productId: productId };
             group.add(frame);
             
+            // Свечение на земле
             const groundGlowGeo = new THREE.PlaneGeometry(3.5, 2.5);
             const groundGlowMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.25, side: THREE.DoubleSide });
             const groundGlow = new THREE.Mesh(groundGlowGeo, groundGlowMat);
             groundGlow.rotation.x = -Math.PI / 2;
             groundGlow.position.y = 0.01;
+            groundGlow.userData = { isTombstonePart: true, productId: productId };
             group.add(groundGlow);
             
+            // Свеча
             const candleBase = new THREE.CylinderGeometry(0.15, 0.18, 0.6, 8);
             const candleMat = new THREE.MeshStandardMaterial({ color: 0xf5f5dc, roughness: 0.5 });
             const candle = new THREE.Mesh(candleBase, candleMat);
             candle.position.set(0, 0.35, 0.7);
+            candle.userData = { isTombstonePart: true, productId: productId };
             group.add(candle);
             
+            // Пламя
             const flameGeo = new THREE.SphereGeometry(0.08, 8, 8);
             const flameMat = new THREE.MeshBasicMaterial({ color: 0xffa500 });
             const flame = new THREE.Mesh(flameGeo, flameMat);
             flame.position.set(0, 0.65, 0.7);
+            flame.userData = { isTombstonePart: true, productId: productId };
             group.add(flame);
             
+            // Источники света
             const candleLight = new THREE.PointLight(0xffa500, 0.3, 2);
             candleLight.position.set(0, 0.5, 0.7);
             group.add(candleLight);
@@ -851,7 +885,13 @@
             pointLight.position.set(0, 1.5, 0.5);
             group.add(pointLight);
             
-            group.userData = { productId: productId, isTombstone: true };
+            // Основная метка для группы
+            group.userData = { 
+                productId: productId, 
+                isTombstone: true,
+                isTombstoneGroup: true
+            };
+            
             group.scale.set(0.1, 0.1, 0.1);
             return group;
         }
@@ -960,37 +1000,84 @@
             }
         }
 
-        // --- Raycaster with throttling ---
+        // --- Улучшенный Raycaster для кликабельности всего надгробия ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
-        function performRaycast(event) {
+        
+        function handleTombstoneClick(event) {
             if (isAnimating || !currentMode || isDragging) return;
+            
             const rect = canvas.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            let clientX, clientY;
+            
+            if (event.touches) {
+                clientX = event.touches[0].clientX;
+                clientY = event.touches[0].clientY;
+            } else {
+                clientX = event.clientX;
+                clientY = event.clientY;
+            }
+            
+            mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+            
             raycaster.setFromCamera(mouse, camera);
-            const allObjects = [];
-            scene.traverse(obj => { if (obj.userData && obj.userData.isTombstone) allObjects.push(obj); });
-            const intersects = raycaster.intersectObjects(allObjects, true);
+            
+            // Собираем все объекты сцены, которые являются частями надгробий
+            const clickableObjects = [];
+            scene.traverse(obj => {
+                if (obj.isMesh && (obj.userData?.isTombstonePart || obj.userData?.isTombstoneGroup || obj.userData?.isTombstone)) {
+                    clickableObjects.push(obj);
+                }
+                // Также проверяем группы
+                if (obj.userData?.isTombstoneGroup || obj.userData?.isTombstone) {
+                    clickableObjects.push(obj);
+                }
+            });
+            
+            const intersects = raycaster.intersectObjects(clickableObjects, true);
+            
             if (intersects.length > 0) {
-                let obj = intersects[0].object;
-                while (obj) {
-                    if (obj.userData && obj.userData.isTombstone) {
-                        showInfoCard(obj.userData.productId);
-                        return;
+                // Ищем родительскую группу с productId
+                let targetObj = intersects[0].object;
+                let productId = null;
+                
+                // Поднимаемся по иерархии в поисках productId
+                while (targetObj) {
+                    if (targetObj.userData?.productId) {
+                        productId = targetObj.userData.productId;
+                        break;
                     }
-                    obj = obj.parent;
+                    if (targetObj.userData?.isTombstoneGroup && targetObj.userData?.productId) {
+                        productId = targetObj.userData.productId;
+                        break;
+                    }
+                    if (targetObj.parent) {
+                        targetObj = targetObj.parent;
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (productId && PRODUCTS[productId]) {
+                    showInfoCard(productId);
                 }
             }
         }
         
+        // Обработчики событий с устранением конфликтов
         function onCanvasClick(event) {
-            if (pendingRaycast) return;
-            pendingRaycast = event;
-            requestAnimationFrame(() => {
-                performRaycast(pendingRaycast);
-                pendingRaycast = null;
-            });
+            event.preventDefault();
+            handleTombstoneClick(event);
+        }
+        
+        function onCanvasTouchEnd(event) {
+            if (event.target === canvas && !isDragging && event.changedTouches.length > 0) {
+                event.preventDefault();
+                handleTombstoneClick(event);
+            }
+            // Сбрасываем флаг перетаскивания через короткое время
+            setTimeout(() => { isDragging = false; }, 100);
         }
 
         // --- Interaction ---
@@ -1001,25 +1088,23 @@
                 lastTouchY = e.clientY;
             }
         });
+        
         canvas.addEventListener('pointermove', (e) => {
             if (isDragging && currentMode === '3d') {
                 const deltaX = e.clientX - lastTouchX;
-                const deltaY = e.clientY - lastTouchY;
-                if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+                if (Math.abs(deltaX) > 3) {
                     tombstones.forEach(t => { t.rotation.y += deltaX * 0.005; });
                     lastTouchX = e.clientX;
-                    lastTouchY = e.clientY;
                 }
             }
         });
-        canvas.addEventListener('pointerup', () => { setTimeout(() => { isDragging = false; }, 50); });
-        canvas.addEventListener('click', onCanvasClick);
-        canvas.addEventListener('touchend', (e) => {
-            if (e.target === canvas && !isDragging && e.changedTouches.length > 0) {
-                e.preventDefault();
-                onCanvasClick(e.changedTouches[0]);
-            }
+        
+        canvas.addEventListener('pointerup', () => {
+            setTimeout(() => { isDragging = false; }, 50);
         });
+        
+        canvas.addEventListener('click', onCanvasClick);
+        canvas.addEventListener('touchend', onCanvasTouchEnd);
 
         // Pinch zoom for 3D
         canvas.addEventListener('touchstart', (e) => {
@@ -1031,6 +1116,7 @@
                 initialCameraPosition = camera.position.clone();
             }
         });
+        
         canvas.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2 && touchStartDistance > 0) {
                 const currentDistance = Math.hypot(
@@ -1044,7 +1130,7 @@
             }
         });
 
-        // --- Gyro for AR (fixed) ---
+        // --- Gyro for AR (исправлено) ---
         let initialOrientation = null;
         function handleOrientation(event) {
             if (currentMode !== 'ar' || isAnimating) return;
@@ -1136,16 +1222,32 @@
             else loadState();
         }
 
-        // --- Event Listeners UI ---
+        // --- Event Listeners UI (с исправленной кнопкой закрытия) ---
         document.getElementById('d3ModeBtn').addEventListener('click', (e) => { e.preventDefault(); start3DMode(); });
         document.getElementById('arModeBtn').addEventListener('click', (e) => { e.preventDefault(); startARMode(); });
         document.getElementById('placeBtn').addEventListener('click', (e) => { e.preventDefault(); if (currentMode) placeNewTombstone(); });
         document.getElementById('clearBtn').addEventListener('click', (e) => { e.preventDefault(); clearAll(); });
         counterEl.addEventListener('click', (e) => { e.preventDefault(); flyToNextTombstone(); });
-        document.getElementById('infoClose').addEventListener('click', hideInfoCard);
-        document.getElementById('infoClose').addEventListener('touchend', hideInfoCard);
+        
+        // Улучшенная кнопка закрытия - несколько способов для надёжности
+        if (infoCloseBtn) {
+            infoCloseBtn.addEventListener('click', hideInfoCard);
+            infoCloseBtn.addEventListener('touchend', hideInfoCard);
+            infoCloseBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); });
+        }
+        
+        // Закрытие по клику на оверлей
         infoOverlay.addEventListener('click', hideInfoCard);
         infoOverlay.addEventListener('touchend', hideInfoCard);
+        
+        // Закрытие по клавише Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && infoCard.classList.contains('visible')) {
+                hideInfoCard();
+            }
+        });
+        
+        // Выбор продукта
         document.getElementById('productRow').addEventListener('click', (e) => {
             const chip = e.target.closest('.product-chip');
             if (!chip) return;
@@ -1164,7 +1266,7 @@
                     tombstone.scale.set(s, s, s);
                 }
                 tombstone.children.forEach(child => {
-                    if (child.isPointLight && child.color.getHex() === 0xffa500) {
+                    if (child.isPointLight && child.color && child.color.getHex() === 0xffa500) {
                         child.intensity = 0.25 + Math.sin(Date.now() * 0.01) * 0.1;
                     }
                 });
@@ -1179,9 +1281,13 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
-        window.addEventListener('beforeunload', () => { if (cameraStream) cameraStream.getTracks().forEach(t => t.stop()); });
         
-        console.log('🪦 Киберкладбище v3.0 — все улучшения внедрены');
+        window.addEventListener('beforeunload', () => { 
+            if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+        });
+        
+        console.log('🪦 Киберкладбище v3.1 — всё надгробие кликабельно, кнопка закрытия исправлена');
+        console.log('👆 Кликайте на ЛЮБУЮ часть надгробия');
     </script>
 </body>
 </html>
