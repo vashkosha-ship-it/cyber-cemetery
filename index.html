@@ -31,7 +31,7 @@
             position: fixed;
             top: 0;
             left: 0;
-            touch-action: manipulation;
+            touch-action: none;
         }
 
         #cameraVideo {
@@ -57,6 +57,7 @@
             height: 100%;
             z-index: 1;
             display: none;
+            touch-action: none;
         }
 
         canvas.active {
@@ -615,7 +616,7 @@
             <button class="place-btn" id="placeBtn">[ УСТАНОВИТЬ ]</button>
             <button class="clear-btn" id="clearBtn">✕</button>
         </div>
-        <div class="hint">Нажмите на любое надгробие</div>
+        <div class="hint">👆 Нажмите на любое надгробие</div>
     </div>
 
     <script type="module">
@@ -640,9 +641,13 @@
         let tombstones = [];
         let currentViewIndex = 0;
         let isAnimating = false;
-        let isDragging = false;
-        let lastTouchX = 0;
         let audioContext = null;
+        
+        // Для мобильных кликов - отслеживаем начало касания
+        let touchStartTime = 0;
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let isTouchMoving = false;
         
         // --- Three.js setup ---
         const canvas = document.getElementById('canvas3D');
@@ -856,7 +861,7 @@
             stone.userData = { productId: productId, isClickable: true };
             group.add(stone);
             
-            // Крест вертикальный
+            // Крест
             const crossVertical = new THREE.BoxGeometry(0.12, 0.7, 0.12);
             const crossHorizontal = new THREE.BoxGeometry(0.45, 0.12, 0.12);
             const crossMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 1 });
@@ -999,24 +1004,14 @@
             currentViewIndex = (currentViewIndex + 1) % tombstones.length;
         }
 
-        // --- ГЛАВНОЕ: Улучшенный Raycaster для кликов ---
+        // --- ГЛАВНОЕ: Улучшенный обработчик кликов для мобильных устройств ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         
-        function onCanvasClick(event) {
+        function checkClick(clientX, clientY) {
             if (isAnimating || !currentMode) {
                 console.log('Клик заблокирован: анимация или нет режима');
-                return;
-            }
-            
-            // Получаем координаты клика
-            let clientX, clientY;
-            if (event.touches) {
-                clientX = event.touches[0].clientX;
-                clientY = event.touches[0].clientY;
-            } else {
-                clientX = event.clientX;
-                clientY = event.clientY;
+                return false;
             }
             
             const rect = canvas.getBoundingClientRect();
@@ -1025,7 +1020,7 @@
             
             raycaster.setFromCamera(mouse, camera);
             
-            // Собираем все кликабельные объекты (с isClickable или isTombstone)
+            // Собираем все кликабельные объекты
             const clickableObjects = [];
             scene.traverse(obj => {
                 if (obj.isMesh && obj.userData && (obj.userData.isClickable || obj.userData.isTombstone)) {
@@ -1033,14 +1028,9 @@
                 }
             });
             
-            console.log('Найдено кликабельных объектов:', clickableObjects.length);
-            
             const intersects = raycaster.intersectObjects(clickableObjects, true);
             
             if (intersects.length > 0) {
-                console.log('Попадание! Количество пересечений:', intersects.length);
-                
-                // Ищем productId в иерархии
                 let hit = intersects[0];
                 let obj = hit.object;
                 let productId = null;
@@ -1059,50 +1049,100 @@
                 }
                 
                 if (productId) {
-                    console.log('Найден productId:', productId);
+                    console.log('Клик успешен! productId:', productId);
                     showInfoCard(productId);
-                } else {
-                    console.log('productId не найден в иерархии');
+                    return true;
                 }
-            } else {
-                console.log('Нет попаданий в объекты');
+            }
+            return false;
+        }
+        
+        // Обработчик для мобильных устройств (touch)
+        function onTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchStartTime = Date.now();
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            isTouchMoving = false;
+        }
+        
+        function onTouchMove(e) {
+            const touch = e.touches[0];
+            const deltaX = Math.abs(touch.clientX - touchStartX);
+            const deltaY = Math.abs(touch.clientY - touchStartY);
+            if (deltaX > 10 || deltaY > 10) {
+                isTouchMoving = true;
             }
         }
         
-        // Обработчики событий с защитой от конфликтов
-        canvas.addEventListener('click', (e) => {
+        function onTouchEnd(e) {
             e.preventDefault();
-            onCanvasClick(e);
-        });
-        
-        canvas.addEventListener('touchend', (e) => {
-            if (e.changedTouches && e.changedTouches.length > 0 && !isDragging) {
-                e.preventDefault();
-                onCanvasClick(e);
+            // Если палец не двигался - это клик
+            if (!isTouchMoving && e.changedTouches.length > 0) {
+                const touch = e.changedTouches[0];
+                checkClick(touch.clientX, touch.clientY);
             }
-            setTimeout(() => { isDragging = false; }, 100);
-        });
-
-        // --- Drag для 3D режима ---
-        canvas.addEventListener('pointerdown', (e) => {
+            // Сбрасываем флаги
+            setTimeout(() => {
+                isTouchMoving = false;
+            }, 50);
+        }
+        
+        // Обработчик для мыши (ПК)
+        function onMouseClick(e) {
+            checkClick(e.clientX, e.clientY);
+        }
+        
+        // Регистрируем обработчики
+        canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+        canvas.addEventListener('touchend', onTouchEnd);
+        canvas.addEventListener('click', onMouseClick);
+        
+        // Drag для 3D режима (вращение сцены)
+        let lastDragX = 0;
+        let isDragging = false;
+        
+        canvas.addEventListener('mousedown', (e) => {
             if (currentMode === '3d' && !isAnimating) {
                 isDragging = true;
-                lastTouchX = e.clientX;
+                lastDragX = e.clientX;
             }
         });
         
-        canvas.addEventListener('pointermove', (e) => {
+        canvas.addEventListener('mousemove', (e) => {
             if (isDragging && currentMode === '3d') {
-                const deltaX = e.clientX - lastTouchX;
+                const deltaX = e.clientX - lastDragX;
                 if (Math.abs(deltaX) > 5) {
                     tombstones.forEach(t => { t.rotation.y += deltaX * 0.005; });
-                    lastTouchX = e.clientX;
+                    lastDragX = e.clientX;
                 }
             }
         });
         
-        canvas.addEventListener('pointerup', () => {
-            setTimeout(() => { isDragging = false; }, 50);
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+        
+        // Для мобильного драга (вращение)
+        canvas.addEventListener('touchmove', (e) => {
+            if (currentMode === '3d' && !isAnimating && e.touches.length === 1) {
+                const touch = e.touches[0];
+                if (lastDragX !== 0) {
+                    const deltaX = touch.clientX - lastDragX;
+                    if (Math.abs(deltaX) > 5) {
+                        tombstones.forEach(t => { t.rotation.y += deltaX * 0.005; });
+                    }
+                }
+                lastDragX = touch.clientX;
+            }
+        });
+        
+        canvas.addEventListener('touchstart', (e) => {
+            if (currentMode === '3d' && !isAnimating && e.touches.length === 1) {
+                lastDragX = e.touches[0].clientX;
+            }
         });
 
         // --- Gyro for AR ---
@@ -1284,8 +1324,8 @@
             if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
         });
         
-        console.log('🪦 Киберкладбище v3.4 — клики исправлены, карточки открываются!');
-        console.log('👆 Нажмите на ЛЮБУЮ часть надгробия');
+        console.log('🪦 Киберкладбище v3.5 — мобильные клики исправлены!');
+        console.log('👆 На телефоне: просто коснитесь надгробия');
     </script>
 </body>
 </html>
