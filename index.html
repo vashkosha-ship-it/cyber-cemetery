@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Киберкладбище AR/3D</title>
     
-    <!-- Three.js лёгкая версия -->
     <script type="importmap">
         {
             "imports": {
@@ -35,7 +34,6 @@
             top: 0;
             left: 0;
             touch-action: manipulation;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
         }
 
         #cameraVideo {
@@ -311,6 +309,7 @@
             letter-spacing: 1px;
             cursor: pointer;
             border-radius: 8px;
+            text-shadow: 0 0 5px #00f7ff;
             touch-action: manipulation;
             pointer-events: auto;
         }
@@ -347,17 +346,40 @@
             background: rgba(5, 5, 16, 0.8);
             border: 1px solid rgba(255, 0, 255, 0.3);
             border-radius: 15px;
-            padding: 4px 10px;
+            padding: 6px 14px;
             color: #ff00ff;
-            font-size: 0.65rem;
+            font-size: 0.7rem;
             z-index: 50;
-            pointer-events: none;
+            pointer-events: auto;
+            cursor: pointer;
             opacity: 0;
-            transition: opacity 0.3s;
+            transition: all 0.3s;
+            text-shadow: 0 0 6px #ff00ff;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .counter.visible {
             opacity: 1;
+        }
+
+        .counter:active {
+            background: rgba(255, 0, 255, 0.2);
+            transform: scale(0.95);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+        }
+
+        .counter::after {
+            content: '👁️';
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .counter.visible::after {
+            opacity: 0.7;
         }
 
         .toast {
@@ -449,6 +471,8 @@
         let currentMode = '';
         let cameraStream = null;
         let tombstones = [];
+        let currentViewIndex = 0;
+        let isAnimating = false;
         
         // ============ THREE.JS ============
         const canvas = document.getElementById('canvas3D');
@@ -556,19 +580,21 @@
             glow.position.y = 0.01;
             group.add(glow);
             
-            // Сохраняем цвет для анимации
-            group.userData = { color: p.color, name: p.name, scale: 0.1 };
+            group.userData = { 
+                color: p.color, 
+                name: p.name,
+                productId: productId
+            };
             group.scale.set(0.1, 0.1, 0.1);
             
             return group;
         }
         
         function placeInitialTombstones() {
-            // Очищаем
             tombstones.forEach(t => scene.remove(t));
             tombstones = [];
+            currentViewIndex = 0;
             
-            // Создаём стартовые надгробия
             const positions = [
                 { product: 'flash',      x: 0,    z: -4 },
                 { product: 'skype',      x: -2.5, z: -3.5 },
@@ -592,7 +618,6 @@
         function placeNewTombstone() {
             const mesh = createTombstoneMesh(selectedProduct);
             
-            // Позиция перед камерой
             const direction = new THREE.Vector3(0, 0, -1);
             direction.applyQuaternion(camera.quaternion);
             
@@ -600,13 +625,11 @@
             mesh.position.copy(camera.position).add(direction.multiplyScalar(distance));
             mesh.position.y = currentMode === 'ar' ? camera.position.y - 0.5 : 0;
             
-            // Поворот лицом к камере
             mesh.lookAt(camera.position.x, mesh.position.y, camera.position.z);
             
             scene.add(mesh);
             tombstones.push(mesh);
             
-            // Ограничение
             if (tombstones.length > 25) {
                 scene.remove(tombstones[0]);
                 tombstones.shift();
@@ -621,9 +644,67 @@
         function clearAll() {
             tombstones.forEach(t => scene.remove(t));
             tombstones = [];
+            currentViewIndex = 0;
             updateCounter();
             showToast('🧹 Кладбище очищено');
             if (navigator.vibrate) navigator.vibrate(50);
+        }
+        
+        // ============ ФУНКЦИЯ ПЕРЕЛЁТА К НАДГРОБИЮ ============
+        function flyToTombstone(index) {
+            if (tombstones.length === 0 || isAnimating) return;
+            
+            isAnimating = true;
+            const target = tombstones[index];
+            const targetPos = target.position.clone();
+            
+            // Позиция камеры: перед надгробием, чуть выше
+            const directionToCamera = new THREE.Vector3(0, 0, -1);
+            directionToCamera.applyQuaternion(target.quaternion);
+            
+            const cameraTargetPos = targetPos.clone()
+                .add(new THREE.Vector3(0, 2, 0)) // Поднимаем камеру
+                .add(directionToCamera.multiplyScalar(-3)); // Отодвигаем назад
+            
+            const startPos = camera.position.clone();
+            const startTime = Date.now();
+            const duration = 1000; // 1 секунда
+            
+            function animateFly() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Плавное движение с ускорением и замедлением
+                const ease = progress < 0.5 
+                    ? 2 * progress * progress 
+                    : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+                
+                camera.position.lerpVectors(startPos, cameraTargetPos, ease);
+                
+                // Поворачиваем камеру на надгробие
+                camera.lookAt(targetPos.x, targetPos.y + 1, targetPos.z);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animateFly);
+                } else {
+                    isAnimating = false;
+                    showToast('🪦 ' + PRODUCTS[target.userData.productId].name);
+                    if (navigator.vibrate) navigator.vibrate(30);
+                }
+            }
+            
+            animateFly();
+        }
+        
+        function flyToNextTombstone() {
+            if (tombstones.length === 0) {
+                showToast('🪦 Нет надгробий для просмотра');
+                return;
+            }
+            
+            const index = currentViewIndex % tombstones.length;
+            flyToTombstone(index);
+            currentViewIndex = (currentViewIndex + 1) % tombstones.length;
         }
         
         function start3DMode() {
@@ -690,7 +771,7 @@
         let initialOrientation = null;
         
         function handleOrientation(event) {
-            if (currentMode !== 'ar') return;
+            if (currentMode !== 'ar' || isAnimating) return;
             
             if (!initialOrientation) {
                 initialOrientation = {
@@ -735,6 +816,19 @@
             clearAll();
         });
         
+        // Кнопка-счётчик: перелёт к надгробиям
+        counterEl.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            flyToNextTombstone();
+        });
+        
+        counterEl.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            flyToNextTombstone();
+        });
+        
         document.getElementById('productRow').addEventListener('click', (e) => {
             const chip = e.target.closest('.product-chip');
             if (!chip) return;
@@ -748,7 +842,6 @@
         function animate() {
             requestAnimationFrame(animate);
             
-            // Анимация появления надгробий
             tombstones.forEach(tombstone => {
                 if (tombstone.scale.x < 0.5) {
                     tombstone.scale.x += 0.05;
@@ -765,21 +858,20 @@
         
         animate();
         
-        // Обработка изменения размера
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
         
-        // Очистка
         window.addEventListener('beforeunload', () => {
             if (cameraStream) {
                 cameraStream.getTracks().forEach(t => t.stop());
             }
         });
         
-        console.log('🪦 Киберкладбище загружено (Three.js версия)');
+        console.log('🪦 Киберкладбище загружено');
+        console.log('👆 Нажмите на счётчик 🪦 для облёта надгробий');
     </script>
 </body>
 </html>
