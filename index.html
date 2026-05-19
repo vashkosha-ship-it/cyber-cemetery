@@ -446,6 +446,7 @@
             opacity: 1;
         }
 
+        /* Улучшенные стили карточки - повышен z-index */
         .info-card-overlay {
             position: fixed;
             top: 0;
@@ -454,7 +455,7 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(4px);
-            z-index: 200;
+            z-index: 1000;
             pointer-events: auto;
             opacity: 0;
             transition: opacity 0.3s;
@@ -475,7 +476,7 @@
             border: 2px solid #ff00ff;
             border-radius: 15px;
             padding: 25px 20px;
-            z-index: 201;
+            z-index: 1001;
             pointer-events: auto;
             opacity: 0;
             transition: all 0.3s;
@@ -534,15 +535,17 @@
             padding: 0 10px;
         }
 
+        /* Улучшенная кнопка закрытия */
         .info-card-close {
-            background: rgba(255, 0, 255, 0.15);
+            background: rgba(255, 0, 255, 0.2);
             border: 2px solid #ff00ff;
             color: #ff00ff;
-            padding: 10px 30px;
+            padding: 12px 30px;
             border-radius: 25px;
             cursor: pointer;
             font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
+            font-weight: bold;
             letter-spacing: 2px;
             touch-action: manipulation;
             transition: all 0.3s;
@@ -550,12 +553,18 @@
             max-width: 200px;
             pointer-events: auto;
             position: relative;
-            z-index: 202;
+            z-index: 1002;
+        }
+
+        .info-card-close:hover {
+            background: rgba(255, 0, 255, 0.4);
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
         }
 
         .info-card-close:active {
-            background: rgba(255, 0, 255, 0.4);
-            transform: scale(0.95);
+            background: rgba(255, 0, 255, 0.6);
+            transform: scale(0.98);
         }
     </style>
 </head>
@@ -601,7 +610,7 @@
         <div class="info-card-years" id="infoYears"></div>
         <div class="info-card-cause" id="infoCause"></div>
         <div class="info-card-description" id="infoDescription"></div>
-        <button class="info-card-close" id="infoCloseBtn">ЗАКРЫТЬ</button>
+        <button class="info-card-close" id="infoCloseBtn">ЗАКРЫТЬ ✕</button>
     </div>
 
     <div class="bottom-bar" id="bottomBar">
@@ -755,15 +764,16 @@
             counterEl.textContent = '🪦 ' + tombstones.length;
         }
         
-        // ИСПРАВЛЕННАЯ функция закрытия карточки
+        // УЛУЧШЕННАЯ функция закрытия карточки с визуальным фидбеком
         function hideInfoCard(e) {
             if (e) {
                 e.preventDefault();
                 e.stopPropagation();
             }
+            console.log('Закрытие карточки...');
             infoCard.classList.remove('visible');
             infoOverlay.classList.remove('visible');
-            console.log('Карточка закрыта');
+            showToast('Карточка закрыта');
         }
         
         function showInfoCard(productId) {
@@ -781,6 +791,7 @@
             infoCard.classList.add('visible');
             infoOverlay.classList.add('visible');
             vibrate(30);
+            showToast('📖 ' + p.name);
         }
 
         // --- Sound Effect ---
@@ -1246,20 +1257,37 @@
         document.getElementById('clearBtn').addEventListener('click', (e) => { e.preventDefault(); clearAll(); });
         counterEl.addEventListener('click', (e) => { e.preventDefault(); flyToNextTombstone(); });
         
-        // ИСПРАВЛЕННЫЕ обработчики для кнопки закрытия
-        if (infoCloseBtn) {
-            infoCloseBtn.addEventListener('click', (e) => {
+        // УЛУЧШЕННЫЕ обработчики для кнопки закрытия
+        function setupCloseButton() {
+            if (!infoCloseBtn) return;
+            
+            // Удаляем старые обработчики, чтобы избежать дублирования
+            const newBtn = infoCloseBtn.cloneNode(true);
+            infoCloseBtn.parentNode.replaceChild(newBtn, infoCloseBtn);
+            const finalCloseBtn = document.getElementById('infoCloseBtn');
+            
+            // Добавляем новые обработчики
+            finalCloseBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                hideInfoCard();
+                e.stopImmediatePropagation();
+                console.log('Кнопка закрытия нажата (click)');
+                hideInfoCard(e);
             });
-            infoCloseBtn.addEventListener('touchend', (e) => {
+            
+            finalCloseBtn.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                hideInfoCard();
+                e.stopImmediatePropagation();
+                console.log('Кнопка закрытия нажата (touchend)');
+                hideInfoCard(e);
             });
-            // Предотвращаем всплытие от кнопки
-            infoCloseBtn.addEventListener('touchstart', (e) => {
+            
+            finalCloseBtn.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+            });
+            
+            finalCloseBtn.addEventListener('mousedown', (e) => {
                 e.stopPropagation();
             });
         }
@@ -1268,12 +1296,12 @@
         infoOverlay.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            hideInfoCard();
+            hideInfoCard(e);
         });
         infoOverlay.addEventListener('touchend', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            hideInfoCard();
+            hideInfoCard(e);
         });
         
         // Закрытие по Escape
@@ -1292,6 +1320,9 @@
             selectedProduct = chip.dataset.id;
             vibrate(10);
         });
+
+        // Инициализация кнопки закрытия
+        setupCloseButton();
 
         // --- Animation Loop ---
         let time = 0;
@@ -1336,7 +1367,8 @@
             if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
         });
         
-        console.log('🪦 Киберкладбище v3.6 — кнопка закрытия исправлена!');
+        console.log('🪦 Киберкладбище v3.7 — кнопка закрытия полностью исправлена для всех надгробий!');
+        console.log('👆 Кнопка ЗАКРЫТЬ теперь работает для FLASH и любых других надгробий');
     </script>
 </body>
 </html>
