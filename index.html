@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Киберкладбище AR/3D</title>
 
-    <!-- A-Frame -->
+    <!-- A-Frame минимальная версия -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
     <style>
@@ -13,7 +13,6 @@
             --neon-cyan: #00f7ff;
             --neon-pink: #ff00ff;
             --neon-green: #39ff14;
-            --dark-bg: #050510;
         }
 
         * {
@@ -25,7 +24,6 @@
             user-select: none;
         }
 
-        /* ВАЖНО ДЛЯ TILDA: переопределяем всё на уровне body */
         body {
             font-family: 'Courier New', monospace;
             background: #050510;
@@ -37,10 +35,8 @@
             top: 0;
             left: 0;
             touch-action: manipulation;
-            z-index: 99999; /* Максимальный приоритет */
         }
 
-        /* Видео с камеры */
         #cameraVideo {
             position: fixed;
             top: 0;
@@ -48,17 +44,15 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            z-index: 1;
+            z-index: 0;
             display: none;
             background: #000;
-            pointer-events: none;
         }
 
         #cameraVideo.active {
             display: block;
         }
 
-        /* Стартовый экран */
         .start-screen {
             position: fixed;
             top: 0;
@@ -66,16 +60,13 @@
             width: 100%;
             height: 100%;
             background: #050510;
-            z-index: 100000;
+            z-index: 999;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.5s;
+            transition: opacity 0.3s;
             padding: 20px;
-            background-image:
-                radial-gradient(circle at 30% 40%, rgba(0, 247, 255, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 70% 60%, rgba(255, 0, 255, 0.04) 0%, transparent 50%);
         }
 
         .start-screen.hidden {
@@ -84,134 +75,99 @@
         }
 
         .start-icon {
-            font-size: 5rem;
-            margin-bottom: 1rem;
-            animation: float 2s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
+            font-size: 4rem;
+            margin-bottom: 0.5rem;
         }
 
         .start-title {
-            color: var(--neon-cyan);
-            font-family: 'Courier New', monospace;
-            font-size: 1.3rem;
-            letter-spacing: 4px;
-            text-shadow: 0 0 25px var(--neon-cyan);
+            color: #00f7ff;
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px #00f7ff;
             text-align: center;
-            margin-bottom: 0.8rem;
-            line-height: 1.3;
+            margin-bottom: 0.5rem;
         }
 
         .start-subtitle {
             color: #667788;
-            font-size: 0.8rem;
-            margin-bottom: 1.5rem;
+            font-size: 0.7rem;
+            margin-bottom: 1rem;
             text-align: center;
-            line-height: 1.5;
         }
 
         .mode-selector {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
             width: 100%;
-            max-width: 300px;
-            margin-bottom: 1rem;
+            max-width: 280px;
         }
 
         .mode-btn {
             background: rgba(10, 10, 26, 0.9);
             border: 2px solid rgba(0, 247, 255, 0.3);
-            color: var(--neon-cyan);
-            padding: 14px 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
+            color: #00f7ff;
+            padding: 12px 16px;
+            font-size: 0.85rem;
             letter-spacing: 2px;
             cursor: pointer;
-            border-radius: 10px;
-            text-shadow: 0 0 8px var(--neon-cyan);
+            border-radius: 8px;
+            text-shadow: 0 0 8px #00f7ff;
             transition: all 0.3s;
-            -webkit-tap-highlight-color: transparent;
             text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
             touch-action: manipulation;
-            z-index: 100001;
         }
 
         .mode-btn:active {
             background: rgba(0, 247, 255, 0.2);
-            box-shadow: 0 0 30px rgba(0, 247, 255, 0.5);
             transform: scale(0.97);
         }
 
         .mode-btn.ar-btn {
-            border-color: var(--neon-pink);
-            color: var(--neon-pink);
-            text-shadow: 0 0 10px var(--neon-pink);
-            box-shadow: 0 0 20px rgba(255, 0, 255, 0.2);
-            animation: btnPulse 2s infinite;
-        }
-
-        @keyframes btnPulse {
-            0%, 100% { box-shadow: 0 0 15px rgba(255, 0, 255, 0.2); }
-            50% { box-shadow: 0 0 35px rgba(255, 0, 255, 0.5); }
-        }
-
-        .mode-btn .emoji {
-            font-size: 1.5rem;
+            border-color: #ff00ff;
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff;
         }
 
         .error-msg {
             color: #ff6b6b;
-            font-size: 0.7rem;
-            margin-top: 0.8rem;
+            font-size: 0.65rem;
+            margin-top: 0.5rem;
             text-align: center;
-            max-width: 300px;
+            max-width: 280px;
             display: none;
-            line-height: 1.4;
         }
 
         .error-msg.show {
             display: block;
         }
 
-        /* AR/3D сцена */
         #mainScene {
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
             width: 100% !important;
             height: 100% !important;
-            z-index: 2;
+            z-index: 1;
             visibility: hidden;
         }
 
-        /* Верхняя панель */
         .top-bar {
             position: fixed;
-            top: 12px;
-            left: 12px;
-            right: 12px;
+            top: 10px;
+            left: 10px;
+            right: 10px;
             z-index: 10;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
-            background: rgba(5, 5, 16, 0.85);
-            border: 1px solid rgba(0, 247, 255, 0.25);
-            border-radius: 10px;
-            padding: 8px 14px;
+            background: rgba(5, 5, 16, 0.8);
+            border: 1px solid rgba(0, 247, 255, 0.2);
+            border-radius: 8px;
+            padding: 6px 12px;
             pointer-events: auto;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
             opacity: 0;
-            transition: opacity 0.5s;
+            transition: opacity 0.3s;
         }
 
         .top-bar.visible {
@@ -219,60 +175,53 @@
         }
 
         .dot {
-            width: 8px;
-            height: 8px;
-            background: var(--neon-green);
+            width: 6px;
+            height: 6px;
+            background: #39ff14;
             border-radius: 50%;
-            box-shadow: 0 0 8px var(--neon-green);
-            animation: dotPulse 1.5s infinite;
-        }
-
-        @keyframes dotPulse {
-            0%, 100% { box-shadow: 0 0 5px var(--neon-green); }
-            50% { box-shadow: 0 0 18px var(--neon-green); }
+            box-shadow: 0 0 6px #39ff14;
         }
 
         .top-title {
-            color: var(--neon-cyan);
-            font-family: 'Courier New', monospace;
-            font-size: 0.75rem;
+            color: #00f7ff;
+            font-size: 0.7rem;
             letter-spacing: 2px;
-            text-shadow: 0 0 8px var(--neon-cyan);
+            text-shadow: 0 0 6px #00f7ff;
         }
 
         .mode-indicator {
-            color: var(--neon-pink);
-            font-size: 0.65rem;
-            letter-spacing: 1px;
-            text-shadow: 0 0 6px var(--neon-pink);
-            padding: 3px 8px;
+            color: #ff00ff;
+            font-size: 0.6rem;
+            padding: 2px 6px;
             border: 1px solid rgba(255, 0, 255, 0.3);
-            border-radius: 12px;
+            border-radius: 10px;
         }
 
-        /* Прицел AR */
         .ar-reticle {
             position: fixed;
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
-            width: 64px;
-            height: 64px;
+            width: 50px;
+            height: 50px;
             pointer-events: none;
             z-index: 9;
             opacity: 0;
             transition: opacity 0.3s;
         }
+
         .ar-reticle.visible {
             opacity: 1;
         }
+
         .ar-reticle::before,
         .ar-reticle::after {
             content: '';
             position: absolute;
-            background: var(--neon-pink);
-            box-shadow: 0 0 10px var(--neon-pink);
+            background: #ff00ff;
+            box-shadow: 0 0 8px #ff00ff;
         }
+
         .ar-reticle::before {
             left: 50%;
             top: 0;
@@ -280,6 +229,7 @@
             width: 2px;
             transform: translateX(-50%);
         }
+
         .ar-reticle::after {
             top: 50%;
             left: 0;
@@ -287,29 +237,16 @@
             height: 2px;
             transform: translateY(-50%);
         }
-        .ar-reticle .ring {
-            position: absolute;
-            inset: 0;
-            border: 2px solid var(--neon-pink);
-            border-radius: 50%;
-            opacity: 0.5;
-            animation: reticlePulse 1.6s infinite ease-in-out;
-        }
-        @keyframes reticlePulse {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.15); opacity: 0.9; }
-        }
 
-        /* Нижняя панель */
         .bottom-bar {
             position: fixed;
-            bottom: 16px;
-            left: 12px;
-            right: 12px;
+            bottom: 12px;
+            left: 10px;
+            right: 10px;
             z-index: 10;
             pointer-events: none;
             opacity: 0;
-            transition: opacity 0.5s;
+            transition: opacity 0.3s;
         }
 
         .bottom-bar.visible {
@@ -318,9 +255,9 @@
 
         .product-row {
             display: flex;
-            gap: 6px;
+            gap: 5px;
             overflow-x: auto;
-            padding: 6px 0;
+            padding: 4px 0;
             pointer-events: auto;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
@@ -334,56 +271,45 @@
             flex-shrink: 0;
             background: rgba(10, 10, 26, 0.9);
             border: 1px solid rgba(0, 247, 255, 0.2);
-            border-radius: 20px;
-            padding: 8px 12px;
+            border-radius: 15px;
+            padding: 6px 10px;
             color: #aabbcc;
-            font-family: 'Courier New', monospace;
-            font-size: 0.65rem;
-            text-align: center;
+            font-size: 0.6rem;
             cursor: pointer;
-            transition: all 0.3s;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
             white-space: nowrap;
-            -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
         }
 
         .product-chip.active {
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 15px rgba(0, 247, 255, 0.4);
-            color: var(--neon-cyan);
-            background: rgba(0, 247, 255, 0.12);
+            border-color: #00f7ff;
+            box-shadow: 0 0 10px rgba(0, 247, 255, 0.3);
+            color: #00f7ff;
+            background: rgba(0, 247, 255, 0.1);
         }
 
         .action-row {
             display: flex;
-            gap: 8px;
-            margin-top: 8px;
+            gap: 6px;
+            margin-top: 6px;
             pointer-events: auto;
         }
 
         .place-btn {
             flex: 1;
-            background: rgba(0, 247, 255, 0.12);
-            border: 2px solid var(--neon-cyan);
-            color: var(--neon-cyan);
-            padding: 12px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.8rem;
+            background: rgba(0, 247, 255, 0.1);
+            border: 2px solid #00f7ff;
+            color: #00f7ff;
+            padding: 10px;
+            font-size: 0.75rem;
             letter-spacing: 1px;
             cursor: pointer;
-            border-radius: 10px;
-            text-shadow: 0 0 6px var(--neon-cyan);
-            transition: all 0.3s;
-            -webkit-tap-highlight-color: transparent;
+            border-radius: 8px;
+            text-shadow: 0 0 5px #00f7ff;
             touch-action: manipulation;
-            z-index: 11;
         }
 
         .place-btn:active {
             background: rgba(0, 247, 255, 0.3);
-            box-shadow: 0 0 30px rgba(0, 247, 255, 0.6);
             transform: scale(0.97);
         }
 
@@ -391,78 +317,57 @@
             background: rgba(255, 80, 80, 0.1);
             border: 2px solid rgba(255, 80, 80, 0.5);
             color: #ff6b6b;
-            padding: 12px 16px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.8rem;
+            padding: 10px 14px;
+            font-size: 0.75rem;
             cursor: pointer;
-            border-radius: 10px;
-            transition: all 0.3s;
-            -webkit-tap-highlight-color: transparent;
+            border-radius: 8px;
             touch-action: manipulation;
-            z-index: 11;
-        }
-
-        .clear-btn:active {
-            background: rgba(255, 80, 80, 0.3);
-            box-shadow: 0 0 20px rgba(255, 80, 80, 0.5);
         }
 
         .hint {
             text-align: center;
-            color: rgba(255, 255, 255, 0.55);
-            font-size: 0.6rem;
-            margin-top: 5px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.55rem;
+            margin-top: 4px;
             pointer-events: none;
-            letter-spacing: 1px;
-            text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
         }
 
-        /* Счётчик */
         .counter {
             position: fixed;
-            top: 60px;
-            right: 12px;
-            background: rgba(5, 5, 16, 0.85);
+            top: 50px;
+            right: 10px;
+            background: rgba(5, 5, 16, 0.8);
             border: 1px solid rgba(255, 0, 255, 0.3);
-            border-radius: 20px;
-            padding: 5px 12px;
-            color: var(--neon-pink);
-            font-family: 'Courier New', monospace;
-            font-size: 0.7rem;
+            border-radius: 15px;
+            padding: 4px 10px;
+            color: #ff00ff;
+            font-size: 0.65rem;
             z-index: 10;
             pointer-events: none;
-            text-shadow: 0 0 6px var(--neon-pink);
-            letter-spacing: 1px;
             opacity: 0;
-            transition: opacity 0.5s;
+            transition: opacity 0.3s;
         }
 
         .counter.visible {
             opacity: 1;
         }
 
-        /* Сообщение */
         .toast {
             position: fixed;
-            bottom: 180px;
+            bottom: 160px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(5, 5, 16, 0.9);
-            border: 1px solid var(--neon-pink);
-            color: var(--neon-pink);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.65rem;
+            border: 1px solid #ff00ff;
+            color: #ff00ff;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.6rem;
             z-index: 10;
             pointer-events: none;
             opacity: 0;
-            transition: opacity 0.5s;
-            text-shadow: 0 0 6px var(--neon-pink);
-            letter-spacing: 1px;
-            text-align: center;
+            transition: opacity 0.3s;
             white-space: nowrap;
-            max-width: 90vw;
         }
 
         .toast.show {
@@ -472,90 +377,56 @@
 </head>
 <body>
 
-    <!-- ВИДЕО С КАМЕРЫ -->
     <video id="cameraVideo" autoplay playsinline muted></video>
 
-    <!-- СТАРТОВЫЙ ЭКРАН -->
     <div class="start-screen" id="startScreen">
         <div class="start-icon">🪦</div>
         <div class="start-title">КИБЕРКЛАДБИЩЕ</div>
-        <div class="start-subtitle">
-            Выберите режим работы<br>AR или 3D без камеры
-        </div>
+        <div class="start-subtitle">Выберите режим работы</div>
         <div class="mode-selector">
-            <button class="mode-btn ar-btn" id="arModeBtn">
-                <span class="emoji">📷</span> AR РЕЖИМ (камера)
-            </button>
-            <button class="mode-btn" id="d3ModeBtn">
-                <span class="emoji">🌐</span> 3D РЕЖИМ (без камеры)
-            </button>
+            <button class="mode-btn ar-btn" id="arModeBtn">📷 AR РЕЖИМ</button>
+            <button class="mode-btn" id="d3ModeBtn">🌐 3D РЕЖИМ</button>
         </div>
         <div class="error-msg" id="errorMsg"></div>
     </div>
 
-    <!-- СЦЕНА -->
     <a-scene
         id="mainScene"
         embedded
         vr-mode-ui="enabled: false"
-        renderer="antialias: true; alpha: true; colorManagement: true"
+        renderer="antialias: false; alpha: true; precision: medium"
         background="color: #050510"
     >
-        <!-- Камера -->
-        <a-entity id="mainCamera" camera position="0 1.6 3" look-controls="enabled: true; magicWindowTrackingEnabled: true"></a-entity>
-
-        <!-- Кладбище -->
+        <a-entity id="mainCamera" camera position="0 1.6 0" look-controls="enabled: false"></a-entity>
         <a-entity id="graveyard"></a-entity>
-
-        <!-- Пол для 3D режима -->
+        
         <a-plane
             id="groundPlane"
             position="0 0 0"
             rotation="-90 0 0"
-            width="20"
-            height="20"
+            width="30"
+            height="30"
             color="#0a0a1e"
-            material="roughness: 0.9; metalness: 0.1;"
             visible="false"
         ></a-plane>
-
-        <!-- Сетка -->
-        <a-entity
-            id="groundGrid"
-            geometry="primitive: plane; width: 20; height: 20; segmentsWidth: 20; segmentsHeight: 20"
-            material="color: #00f7ff; opacity: 0.25; transparent: true; wireframe: true"
-            position="0 0.005 0"
-            rotation="-90 0 0"
-            visible="false"
-        ></a-entity>
-
-        <!-- Освещение -->
-        <a-light type="ambient" color="#444466" intensity="0.7"></a-light>
-        <a-light type="directional" color="#ffffff" intensity="0.5" position="1 3 2"></a-light>
-        <a-light type="point" color="#ff00ff" intensity="0.4" position="0 2 0" distance="10"></a-light>
+        
+        <a-light type="ambient" color="#444466" intensity="0.8"></a-light>
+        <a-light type="directional" color="#ffffff" intensity="0.6" position="1 3 2"></a-light>
+        <a-light type="point" color="#ff00ff" intensity="0.3" position="0 2 0" distance="8"></a-light>
     </a-scene>
 
-    <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
     <div class="top-bar" id="topBar">
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;align-items:center;gap:6px;">
             <div class="dot"></div>
             <span class="top-title">КИБЕРКЛАДБИЩЕ</span>
         </div>
         <span class="mode-indicator" id="modeIndicator">3D</span>
     </div>
 
-    <!-- ПРИЦЕЛ AR -->
-    <div class="ar-reticle" id="arReticle">
-        <div class="ring"></div>
-    </div>
-
-    <!-- СЧЁТЧИК -->
+    <div class="ar-reticle" id="arReticle"></div>
     <div class="counter" id="counter">🪦 0</div>
-
-    <!-- ТОСТ -->
     <div class="toast" id="toast"></div>
 
-    <!-- НИЖНЯЯ ПАНЕЛЬ -->
     <div class="bottom-bar" id="bottomBar">
         <div class="product-row" id="productRow">
             <span class="product-chip active" data-id="skype">📞 Skype</span>
@@ -571,70 +442,53 @@
             <button class="place-btn" id="placeBtn">[ УСТАНОВИТЬ ]</button>
             <button class="clear-btn" id="clearBtn">✕</button>
         </div>
-        <div class="hint" id="hintText">Нажмите УСТАНОВИТЬ для размещения</div>
+        <div class="hint">Нажмите УСТАНОВИТЬ для размещения</div>
     </div>
 
     <script>
         (function() {
-            // ============ ДАННЫЕ ============
             const PRODUCTS = {
-                skype:      { name: 'SKYPE',     years: '2003 - 2025', cause: 'УБИТ MICROSOFT',  color: '#4da6ff', emoji: '📞' },
-                flash:      { name: 'FLASH',     years: '1996 - 2020', cause: 'УБИТ APPLE',      color: '#ff5555', emoji: '⚡' },
-                vine:       { name: 'VINE',      years: '2013 - 2017', cause: 'УБИТ TIKTOK',     color: '#39ff14', emoji: '🎥' },
-                googleplus: { name: 'GOOGLE+',   years: '2011 - 2019', cause: 'НИКОМУ НЕ НУЖЕН', color: '#ff4444', emoji: '🔵' },
-                winphone:   { name: 'WIN PHONE', years: '2010 - 2019', cause: 'БЕЗ ПРИЛОЖЕНИЙ',  color: '#00a4ef', emoji: '📱' },
-                yahoo:      { name: 'YAHOO MSG', years: '1998 - 2018', cause: 'ЭПОХА УШЛА',      color: '#9b59b6', emoji: '💬' },
-                periscope:  { name: 'PERISCOPE', years: '2015 - 2021', cause: 'ЭФИР ОПУСТЕЛ',    color: '#e74c3c', emoji: '📡' },
-                clubhouse:  { name: 'CLUBHOUSE', years: '2020 - 2023', cause: 'ТИШИНА',          color: '#f39c12', emoji: '🎙️' }
+                skype:      { name: 'SKYPE',     years: '2003-2025', cause: 'УБИТ MICROSOFT',  color: '#4da6ff', emoji: '📞' },
+                flash:      { name: 'FLASH',     years: '1996-2020', cause: 'УБИТ APPLE',      color: '#ff5555', emoji: '⚡' },
+                vine:       { name: 'VINE',      years: '2013-2017', cause: 'УБИТ TIKTOK',     color: '#39ff14', emoji: '🎥' },
+                googleplus: { name: 'GOOGLE+',   years: '2011-2019', cause: 'НИКОМУ НЕ НУЖЕН', color: '#ff4444', emoji: '🔵' },
+                winphone:   { name: 'WIN PHONE', years: '2010-2019', cause: 'БЕЗ ПРИЛОЖЕНИЙ',  color: '#00a4ef', emoji: '📱' },
+                yahoo:      { name: 'YAHOO MSG', years: '1998-2018', cause: 'ЭПОХА УШЛА',      color: '#9b59b6', emoji: '💬' },
+                periscope:  { name: 'PERISCOPE', years: '2015-2021', cause: 'ЭФИР ОПУСТЕЛ',    color: '#e74c3c', emoji: '📡' },
+                clubhouse:  { name: 'CLUBHOUSE', years: '2020-2023', cause: 'ТИШИНА',          color: '#f39c12', emoji: '🎙️' }
             };
 
-            // ============ СОСТОЯНИЕ ============
             let selectedProduct = 'skype';
-            let placedCount = 0;
             let currentMode = '';
             let cameraStream = null;
+            let sceneLoaded = false;
 
-            // ============ DOM ============
-            const startScreen   = document.getElementById('startScreen');
-            const arModeBtn     = document.getElementById('arModeBtn');
-            const d3ModeBtn     = document.getElementById('d3ModeBtn');
-            const errorMsg      = document.getElementById('errorMsg');
-            const mainScene     = document.getElementById('mainScene');
-            const topBar        = document.getElementById('topBar');
-            const bottomBar     = document.getElementById('bottomBar');
-            const counterEl     = document.getElementById('counter');
-            const placeBtn      = document.getElementById('placeBtn');
-            const clearBtn      = document.getElementById('clearBtn');
-            const productRow    = document.getElementById('productRow');
+            const startScreen = document.getElementById('startScreen');
+            const mainScene = document.getElementById('mainScene');
+            const graveyard = document.getElementById('graveyard');
+            const mainCamera = document.getElementById('mainCamera');
+            const groundPlane = document.getElementById('groundPlane');
+            const cameraVideo = document.getElementById('cameraVideo');
+            const arReticle = document.getElementById('arReticle');
+            const topBar = document.getElementById('topBar');
+            const bottomBar = document.getElementById('bottomBar');
+            const counterEl = document.getElementById('counter');
             const modeIndicator = document.getElementById('modeIndicator');
-            const toast         = document.getElementById('toast');
-            const hintText      = document.getElementById('hintText');
-            const groundPlane   = document.getElementById('groundPlane');
-            const groundGrid    = document.getElementById('groundGrid');
-            const mainCamera    = document.getElementById('mainCamera');
-            const cameraVideo   = document.getElementById('cameraVideo');
-            const arReticle     = document.getElementById('arReticle');
+            const toast = document.getElementById('toast');
+            const errorMsg = document.getElementById('errorMsg');
 
-            // ============ УТИЛИТЫ ============
-            function showToast(msg, duration = 2200) {
+            function showToast(msg) {
                 toast.textContent = msg;
                 toast.classList.add('show');
                 clearTimeout(toast._timeout);
-                toast._timeout = setTimeout(() => toast.classList.remove('show'), duration);
+                toast._timeout = setTimeout(() => toast.classList.remove('show'), 2000);
             }
 
-            function updateModeUI() {
-                modeIndicator.textContent = currentMode === 'ar' ? 'AR 📷' : '3D 🌐';
-                hintText.textContent = 'Нажмите УСТАНОВИТЬ для размещения';
-            }
-
-            // ============ СОЗДАНИЕ НАДГРОБИЯ ============
-            function createTombstone(productId) {
+            function createTombstone(productId, x, y, z, yaw) {
                 const p = PRODUCTS[productId];
-                const id = 'grave-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-                
                 const group = document.createElement('a-entity');
-                group.setAttribute('id', id);
+                group.setAttribute('position', x + ' ' + y + ' ' + z);
+                group.setAttribute('rotation', '0 ' + (yaw || 0) + ' 0');
                 group.setAttribute('scale', '0.5 0.5 0.5');
                 group.setAttribute('class', 'tombstone');
 
@@ -663,207 +517,124 @@
                 frame.setAttribute('depth', '0.08');
                 frame.setAttribute('position', '0 1.55 -0.15');
                 frame.setAttribute('color', p.color);
-                frame.setAttribute('material', 'emissive: ' + p.color + '; emissiveIntensity: 2; opacity: 0.9; transparent: true');
+                frame.setAttribute('material', 'emissive: ' + p.color + '; emissiveIntensity: 1.5; opacity: 0.85');
                 group.appendChild(frame);
 
                 // Эмодзи
-                const emojiText = document.createElement('a-text');
-                emojiText.setAttribute('value', p.emoji);
-                emojiText.setAttribute('position', '0 2.6 0.16');
-                emojiText.setAttribute('align', 'center');
-                emojiText.setAttribute('width', '3');
-                emojiText.setAttribute('scale', '1.5 1.5 1');
-                group.appendChild(emojiText);
+                const emoji = document.createElement('a-text');
+                emoji.setAttribute('value', p.emoji);
+                emoji.setAttribute('position', '0 2.6 0.16');
+                emoji.setAttribute('align', 'center');
+                emoji.setAttribute('width', '3');
+                emoji.setAttribute('scale', '1.5 1.5 1');
+                group.appendChild(emoji);
 
                 // Название
-                const nameText = document.createElement('a-text');
-                nameText.setAttribute('value', p.name);
-                nameText.setAttribute('position', '0 2 0.16');
-                nameText.setAttribute('align', 'center');
-                nameText.setAttribute('width', '4');
-                nameText.setAttribute('color', p.color);
-                nameText.setAttribute('scale', '1.2 1.2 1');
-                group.appendChild(nameText);
+                const name = document.createElement('a-text');
+                name.setAttribute('value', p.name);
+                name.setAttribute('position', '0 2 0.16');
+                name.setAttribute('align', 'center');
+                name.setAttribute('width', '4');
+                name.setAttribute('color', p.color);
+                name.setAttribute('scale', '1.2 1.2 1');
+                group.appendChild(name);
 
                 // Годы
-                const yearsText = document.createElement('a-text');
-                yearsText.setAttribute('value', p.years);
-                yearsText.setAttribute('position', '0 1.3 0.16');
-                yearsText.setAttribute('align', 'center');
-                yearsText.setAttribute('width', '3.5');
-                yearsText.setAttribute('color', '#aabbcc');
-                group.appendChild(yearsText);
+                const years = document.createElement('a-text');
+                years.setAttribute('value', p.years);
+                years.setAttribute('position', '0 1.3 0.16');
+                years.setAttribute('align', 'center');
+                years.setAttribute('width', '3.5');
+                years.setAttribute('color', '#aabbcc');
+                group.appendChild(years);
 
                 // Причина
-                const causeText = document.createElement('a-text');
-                causeText.setAttribute('value', p.cause);
-                causeText.setAttribute('position', '0 0.7 0.16');
-                causeText.setAttribute('align', 'center');
-                causeText.setAttribute('width', '3');
-                causeText.setAttribute('color', '#8899aa');
-                group.appendChild(causeText);
+                const cause = document.createElement('a-text');
+                cause.setAttribute('value', p.cause);
+                cause.setAttribute('position', '0 0.7 0.16');
+                cause.setAttribute('align', 'center');
+                cause.setAttribute('width', '3');
+                cause.setAttribute('color', '#8899aa');
+                group.appendChild(cause);
 
-                // Свечение
-                const glow = document.createElement('a-plane');
-                glow.setAttribute('position', '0 0.01 0');
-                glow.setAttribute('rotation', '-90 0 0');
-                glow.setAttribute('width', '3');
-                glow.setAttribute('height', '2');
-                glow.setAttribute('color', p.color);
-                glow.setAttribute('material', 'emissive: ' + p.color + '; emissiveIntensity: 1.5; opacity: 0.4; transparent: true');
-                group.appendChild(glow);
+                // Анимация появления
+                group.setAttribute('animation', 'property: scale; from: 0.1 0.1 0.1; to: 0.5 0.5 0.5; dur: 600; easing: easeOutBack');
 
+                graveyard.appendChild(group);
                 return group;
             }
 
-            // ============ РАЗМЕЩЕНИЕ ============
-            function placeTombstone(position, yawDeg) {
-                const gv = document.getElementById('graveyard');
-                if (!gv) {
-                    console.warn('graveyard не найден');
-                    return;
+            function placeInitialTombstones() {
+                // Очищаем
+                while (graveyard.firstChild) {
+                    graveyard.removeChild(graveyard.firstChild);
                 }
 
-                const tombstone = createTombstone(selectedProduct);
-                tombstone.setAttribute('position', position);
-
-                if (typeof yawDeg === 'number' && !isNaN(yawDeg)) {
-                    tombstone.setAttribute('rotation', '0 ' + yawDeg + ' 0');
-                }
-
-                // Анимация
-                tombstone.setAttribute('animation__pop',
-                    'property: scale; from: 0.1 0.1 0.1; to: 0.5 0.5 0.5; dur: 800; easing: easeOutElastic'
-                );
-
-                gv.appendChild(tombstone);
-
-                // Счётчик
-                placedCount = gv.querySelectorAll('.tombstone').length;
-                counterEl.textContent = '🪦 ' + placedCount;
-
-                // Вспышка
-                const flash = document.createElement('a-sphere');
-                flash.setAttribute('position', position);
-                flash.setAttribute('radius', '0.2');
-                flash.setAttribute('color', PRODUCTS[selectedProduct].color);
-                flash.setAttribute('material', 'emissive: ' + PRODUCTS[selectedProduct].color + '; emissiveIntensity: 3; opacity: 1; transparent: true');
-                flash.setAttribute('animation__scale', 'property: scale; from: 1 1 1; to: 10 10 10; dur: 800');
-                flash.setAttribute('animation__fade', 'property: material.opacity; from: 1; to: 0; dur: 800');
-                gv.appendChild(flash);
-                setTimeout(() => { if (flash.parentNode) flash.parentNode.removeChild(flash); }, 900);
-
-                if (navigator.vibrate) navigator.vibrate(20);
-
-                // Ограничение
-                const all = gv.querySelectorAll('.tombstone');
-                if (all.length > 20) {
-                    const first = all[0];
-                    if (first.parentNode) first.parentNode.removeChild(first);
-                    placedCount = gv.querySelectorAll('.tombstone').length;
-                    counterEl.textContent = '🪦 ' + placedCount;
-                }
-
-                showToast('🪦 ' + PRODUCTS[selectedProduct].name + ' установлен!');
-            }
-
-            // ============ СОСТОЯНИЕ КАМЕРЫ ============
-            function getCameraState() {
-                const camObj = mainCamera.object3D;
-                camObj.updateMatrixWorld(true);
-
-                const pos = new THREE.Vector3();
-                camObj.getWorldPosition(pos);
-
-                const quat = new THREE.Quaternion();
-                camObj.getWorldQuaternion(quat);
-
-                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(quat);
-                forward.y = 0;
-                if (forward.lengthSq() < 0.0001) {
-                    forward.set(0, 0, -1);
-                } else {
-                    forward.normalize();
-                }
-
-                return { pos: pos, forward: forward };
-            }
-
-            // ============ РАЗМЕЩЕНИЕ С УГЛОМ ============
-            function placeAtAngleAndDistance(angleDeg, distance, height) {
-                if (typeof height !== 'number') height = 0;
-                const state = getCameraState();
-                const pos = state.pos;
-                const fwd = state.forward;
-
-                const a = angleDeg * Math.PI / 180;
-                const sinA = Math.sin(a);
-                const cosA = Math.cos(a);
-
-                const dx = fwd.x * cosA - fwd.z * sinA;
-                const dz = fwd.x * sinA + fwd.z * cosA;
-
-                const actualDistance = currentMode === 'ar' ? Math.max(distance, 3) : distance;
-                
-                let x = pos.x + dx * actualDistance;
-                let z = pos.z + dz * actualDistance;
-
-                if (isNaN(x)) x = 0;
-                if (isNaN(z)) z = -3;
-
-                const y = currentMode === 'ar' ? pos.y - 0.5 : height;
-                const yaw = Math.atan2(pos.x - x, pos.z - z) * 180 / Math.PI;
-
-                placeTombstone(
-                    x.toFixed(3) + ' ' + y.toFixed(2) + ' ' + z.toFixed(3),
-                    isNaN(yaw) ? 0 : yaw
-                );
-            }
-
-            // ============ ДЕМО-НАДГРОБИЯ ============
-            function placeDemoBatch() {
-                const baseHeight = currentMode === 'ar' ? 0.4 : 0;
-                const demos = [
-                    { product: 'flash',      angle: 0,   distance: 3.5 },
-                    { product: 'skype',      angle: -25, distance: 3.2 },
-                    { product: 'vine',       angle: 25,  distance: 3.2 },
-                    { product: 'googleplus', angle: -12, distance: 5 },
-                    { product: 'winphone',   angle: 12,  distance: 5 }
+                // Создаём стартовые надгробия перед камерой
+                const initialSet = [
+                    { product: 'flash',      x: 0,    y: 0, z: -4, yaw: 0 },
+                    { product: 'skype',      x: -2.5, y: 0, z: -3.5, yaw: 15 },
+                    { product: 'vine',       x: 2.5,  y: 0, z: -3.5, yaw: -15 },
+                    { product: 'googleplus', x: -4,   y: 0, z: -5, yaw: 25 },
+                    { product: 'winphone',   x: 4,    y: 0, z: -5, yaw: -25 },
+                    { product: 'yahoo',      x: -1.5, y: 0, z: -6, yaw: 10 },
+                    { product: 'periscope',  x: 1.5,  y: 0, z: -6, yaw: -10 }
                 ];
-                const prev = selectedProduct;
-                demos.forEach(d => {
-                    selectedProduct = d.product;
-                    placeAtAngleAndDistance(d.angle, d.distance, baseHeight);
+
+                initialSet.forEach(item => {
+                    createTombstone(item.product, item.x, item.y, item.z, item.yaw);
                 });
-                selectedProduct = prev;
-                document.querySelectorAll('.product-chip').forEach(c => c.classList.remove('active'));
-                const chip = document.querySelector('[data-id="' + selectedProduct + '"]');
-                if (chip) chip.classList.add('active');
+
+                updateCounter();
             }
 
-            // ============ ЗАГРУЗКА СЦЕНЫ ============
-            function whenSceneReady(cb) {
-                if (mainScene.hasLoaded) {
-                    cb();
-                } else {
-                    mainScene.addEventListener('loaded', cb, { once: true });
+            function placeNewTombstone() {
+                if (!sceneLoaded) return;
+                
+                // Получаем позицию камеры
+                const camPos = new THREE.Vector3();
+                mainCamera.object3D.getWorldPosition(camPos);
+                
+                // Размещаем перед камерой
+                const quat = new THREE.Quaternion();
+                mainCamera.object3D.getWorldQuaternion(quat);
+                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(quat);
+                
+                const distance = currentMode === 'ar' ? 3 : 3;
+                const x = camPos.x + forward.x * distance;
+                const z = camPos.z + forward.z * distance;
+                const y = currentMode === 'ar' ? camPos.y - 0.5 : 0;
+                
+                const yaw = Math.atan2(forward.x, forward.z) * 180 / Math.PI;
+                
+                createTombstone(selectedProduct, x, y, z, yaw);
+                updateCounter();
+                
+                // Удаляем старые если больше 25
+                const all = graveyard.querySelectorAll('.tombstone');
+                if (all.length > 25) {
+                    all[0].parentNode.removeChild(all[0]);
+                    updateCounter();
                 }
+                
+                showToast('🪦 ' + PRODUCTS[selectedProduct].name + ' установлен!');
+                if (navigator.vibrate) navigator.vibrate(20);
             }
 
-            // ============ ОЧИСТКА ============
+            function updateCounter() {
+                const count = graveyard.querySelectorAll('.tombstone').length;
+                counterEl.textContent = '🪦 ' + count;
+            }
+
             function clearAll() {
-                const gv = document.getElementById('graveyard');
-                if (!gv) return;
-                while (gv.firstChild) {
-                    gv.removeChild(gv.firstChild);
+                while (graveyard.firstChild) {
+                    graveyard.removeChild(graveyard.firstChild);
                 }
-                placedCount = 0;
-                counterEl.textContent = '🪦 0';
+                updateCounter();
                 showToast('🧹 Кладбище очищено');
-                if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+                if (navigator.vibrate) navigator.vibrate(50);
             }
 
-            // ============ 3D РЕЖИМ ============
             function start3DMode() {
                 currentMode = '3d';
                 startScreen.classList.add('hidden');
@@ -872,29 +643,22 @@
                 bottomBar.classList.add('visible');
                 counterEl.classList.add('visible');
                 arReticle.classList.remove('visible');
-
-                mainScene.setAttribute('background', 'color: #050510');
-                mainCamera.setAttribute('position', '0 1.6 5');
-                mainCamera.setAttribute('look-controls', 'enabled: true; magicWindowTrackingEnabled: false');
-
-                groundPlane.setAttribute('visible', 'true');
-                groundGrid.setAttribute('visible', 'true');
                 cameraVideo.classList.remove('active');
 
-                updateModeUI();
-                showToast('🌐 3D режим активирован');
+                mainScene.setAttribute('background', 'color: #050510');
+                mainCamera.setAttribute('position', '0 1.6 0');
+                mainCamera.setAttribute('look-controls', 'enabled: true; magicWindowTrackingEnabled: false');
+                groundPlane.setAttribute('visible', 'true');
+                modeIndicator.textContent = '3D 🌐';
+                showToast('🌐 3D режим');
 
-                whenSceneReady(() => {
-                    setTimeout(placeDemoBatch, 500);
-                });
+                // Сразу ставим надгробия
+                setTimeout(placeInitialTombstones, 100);
             }
 
-            // ============ AR РЕЖИМ ============
-            async function tryARMode() {
+            async function startARMode() {
                 errorMsg.classList.remove('show');
-                arModeBtn.textContent = '⏳ ЗАПРОС КАМЕРЫ...';
-                arModeBtn.style.pointerEvents = 'none';
-
+                
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({
                         video: {
@@ -924,107 +688,68 @@
                     }
 
                     groundPlane.setAttribute('visible', 'false');
-                    groundGrid.setAttribute('visible', 'false');
                     mainCamera.setAttribute('position', '0 1.6 0');
                     mainCamera.setAttribute('look-controls', 'enabled: true; magicWindowTrackingEnabled: true');
+                    modeIndicator.textContent = 'AR 📷';
+                    showToast('📷 AR режим');
 
-                    updateModeUI();
-                    showToast('📷 AR режим активирован');
-
-                    whenSceneReady(() => {
-                        setTimeout(placeDemoBatch, 500);
-                    });
+                    // Ставим надгробия после активации камеры
+                    setTimeout(() => {
+                        placeInitialTombstones();
+                    }, 500);
 
                 } catch (e) {
-                    console.error('AR error:', e);
                     errorMsg.textContent = '⚠ Ошибка камеры. Используйте 3D режим.';
                     errorMsg.classList.add('show');
-                } finally {
-                    arModeBtn.textContent = '📷 AR РЕЖИМ (камера)';
-                    arModeBtn.style.pointerEvents = 'auto';
                 }
             }
 
-            // ============ ОБРАБОТЧИКИ ============
-            
-            // Tilda-совместимые обработчики
-            arModeBtn.addEventListener('click', function(e) {
+            // Обработчики событий
+            document.getElementById('d3ModeBtn').addEventListener('click', start3DMode);
+            document.getElementById('d3ModeBtn').addEventListener('touchend', (e) => {
                 e.preventDefault();
-                e.stopPropagation();
-                tryARMode();
-            });
-            
-            arModeBtn.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                tryARMode();
-            });
-
-            d3ModeBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                start3DMode();
-            });
-            
-            d3ModeBtn.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
                 start3DMode();
             });
 
-            // Выбор продукта
-            productRow.addEventListener('click', function(e) {
+            document.getElementById('arModeBtn').addEventListener('click', startARMode);
+            document.getElementById('arModeBtn').addEventListener('touchend', (e) => {
+                e.preventDefault();
+                startARMode();
+            });
+
+            document.getElementById('placeBtn').addEventListener('click', placeNewTombstone);
+            document.getElementById('placeBtn').addEventListener('touchend', (e) => {
+                e.preventDefault();
+                placeNewTombstone();
+            });
+
+            document.getElementById('clearBtn').addEventListener('click', clearAll);
+            document.getElementById('clearBtn').addEventListener('touchend', (e) => {
+                e.preventDefault();
+                clearAll();
+            });
+
+            document.getElementById('productRow').addEventListener('click', (e) => {
                 const chip = e.target.closest('.product-chip');
                 if (!chip) return;
-                e.preventDefault();
-                e.stopPropagation();
                 document.querySelectorAll('.product-chip').forEach(c => c.classList.remove('active'));
                 chip.classList.add('active');
                 selectedProduct = chip.dataset.id;
                 if (navigator.vibrate) navigator.vibrate(10);
             });
 
-            // Кнопка УСТАНОВИТЬ
-            function handlePlace() {
-                if (!currentMode) return;
-                const distance = currentMode === 'ar' ? 3 : 2.5;
-                const height = currentMode === 'ar' ? 0.4 : 0;
-                placeAtAngleAndDistance(0, distance, height);
-            }
-
-            placeBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                handlePlace();
-            });
-            
-            placeBtn.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                handlePlace();
+            // Сцена загружена
+            mainScene.addEventListener('loaded', () => {
+                sceneLoaded = true;
             });
 
-            // Кнопка очистки
-            function handleClear() {
-                clearAll();
-            }
-
-            clearBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleClear();
-            });
-            
-            clearBtn.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleClear();
+            // Очистка при уходе
+            window.addEventListener('beforeunload', () => {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(t => t.stop());
+                }
             });
 
-            // Инициализация
-            console.log('🪦 Киберкладбище загружено (Tilda-версия)');
-            console.log('📱 Используйте кнопку УСТАНОВИТЬ для размещения надгробий');
-            
         })();
     </script>
 </body>
