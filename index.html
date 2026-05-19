@@ -185,6 +185,12 @@
             background: #39ff14;
             border-radius: 50%;
             box-shadow: 0 0 6px #39ff14;
+            animation: dotPulse 1.5s infinite;
+        }
+
+        @keyframes dotPulse {
+            0%, 100% { box-shadow: 0 0 5px #39ff14; }
+            50% { box-shadow: 0 0 18px #39ff14; }
         }
 
         .top-title {
@@ -283,6 +289,7 @@
             white-space: nowrap;
             touch-action: manipulation;
             pointer-events: auto;
+            transition: all 0.3s;
         }
 
         .product-chip.active {
@@ -312,6 +319,7 @@
             text-shadow: 0 0 5px #00f7ff;
             touch-action: manipulation;
             pointer-events: auto;
+            transition: all 0.3s;
         }
 
         .place-btn:active {
@@ -329,6 +337,7 @@
             border-radius: 8px;
             touch-action: manipulation;
             pointer-events: auto;
+            transition: all 0.3s;
         }
 
         .hint {
@@ -371,17 +380,6 @@
             box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
         }
 
-        .counter::after {
-            content: '👁️';
-            font-size: 0.8rem;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .counter.visible::after {
-            opacity: 0.7;
-        }
-
         .toast {
             position: fixed;
             bottom: 160px;
@@ -401,6 +399,87 @@
         }
 
         .toast.show {
+            opacity: 1;
+        }
+
+        /* Карточка с информацией о сервисе */
+        .info-card {
+            position: fixed;
+            bottom: 50%;
+            left: 50%;
+            transform: translate(-50%, 50%);
+            background: rgba(5, 5, 16, 0.95);
+            border: 2px solid #ff00ff;
+            border-radius: 15px;
+            padding: 20px;
+            z-index: 200;
+            pointer-events: auto;
+            opacity: 0;
+            transition: all 0.3s;
+            text-align: center;
+            min-width: 250px;
+            max-width: 300px;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .info-card.visible {
+            opacity: 1;
+        }
+
+        .info-card-emoji {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .info-card-name {
+            color: #00f7ff;
+            font-size: 1.2rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 15px #00f7ff;
+        }
+
+        .info-card-years {
+            color: #aabbcc;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+
+        .info-card-cause {
+            color: #ff6b6b;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+
+        .info-card-close {
+            background: rgba(255, 0, 255, 0.2);
+            border: 1px solid #ff00ff;
+            color: #ff00ff;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            touch-action: manipulation;
+        }
+
+        .info-card-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 199;
+            pointer-events: auto;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .info-card-overlay.visible {
             opacity: 1;
         }
     </style>
@@ -433,6 +512,16 @@
     <div class="counter" id="counter">🪦 0</div>
     <div class="toast" id="toast"></div>
 
+    <!-- Карточка информации -->
+    <div class="info-card-overlay" id="infoOverlay"></div>
+    <div class="info-card" id="infoCard">
+        <div class="info-card-emoji" id="infoEmoji"></div>
+        <div class="info-card-name" id="infoName"></div>
+        <div class="info-card-years" id="infoYears"></div>
+        <div class="info-card-cause" id="infoCause"></div>
+        <button class="info-card-close" id="infoClose">ЗАКРЫТЬ</button>
+    </div>
+
     <div class="bottom-bar" id="bottomBar">
         <div class="product-row" id="productRow">
             <span class="product-chip active" data-id="skype">📞 Skype</span>
@@ -456,14 +545,14 @@
 
         // ============ ДАННЫЕ ============
         const PRODUCTS = {
-            skype:      { name: 'SKYPE',     years: '2003-2025', cause: 'УБИТ MICROSOFT',  color: '#4da6ff', emoji: '📞' },
-            flash:      { name: 'FLASH',     years: '1996-2020', cause: 'УБИТ APPLE',      color: '#ff5555', emoji: '⚡' },
-            vine:       { name: 'VINE',      years: '2013-2017', cause: 'УБИТ TIKTOK',     color: '#39ff14', emoji: '🎥' },
-            googleplus: { name: 'GOOGLE+',   years: '2011-2019', cause: 'НИКОМУ НЕ НУЖЕН', color: '#ff4444', emoji: '🔵' },
-            winphone:   { name: 'WIN PHONE', years: '2010-2019', cause: 'БЕЗ ПРИЛОЖЕНИЙ',  color: '#00a4ef', emoji: '📱' },
-            yahoo:      { name: 'YAHOO MSG', years: '1998-2018', cause: 'ЭПОХА УШЛА',      color: '#9b59b6', emoji: '💬' },
-            periscope:  { name: 'PERISCOPE', years: '2015-2021', cause: 'ЭФИР ОПУСТЕЛ',    color: '#e74c3c', emoji: '📡' },
-            clubhouse:  { name: 'CLUBHOUSE', years: '2020-2023', cause: 'ТИШИНА',          color: '#f39c12', emoji: '🎙️' }
+            skype:      { name: 'SKYPE',     years: '2003-2025', cause: 'УБИТ MICROSOFT',  color: '#4da6ff', emoji: '📞', description: 'Легендарный мессенджер, купленный Microsoft за $8.5 млрд и закрытый в мае 2025' },
+            flash:      { name: 'FLASH',     years: '1996-2020', cause: 'УБИТ APPLE',      color: '#ff5555', emoji: '⚡', description: 'Технология, создавшая интернет-анимацию. Стив Джобс отказался от неё в iPhone' },
+            vine:       { name: 'VINE',      years: '2013-2017', cause: 'УБИТ TIKTOK',     color: '#39ff14', emoji: '🎥', description: 'Первый сервис коротких видео. 6-секундные ролики захватили мир' },
+            googleplus: { name: 'GOOGLE+',   years: '2011-2019', cause: 'НИКОМУ НЕ НУЖЕН', color: '#ff4444', emoji: '🔵', description: 'Социальная сеть от Google, которую пытались навязать пользователям YouTube' },
+            winphone:   { name: 'WIN PHONE', years: '2010-2019', cause: 'БЕЗ ПРИЛОЖЕНИЙ',  color: '#00a4ef', emoji: '📱', description: 'Мобильная ОС с уникальным дизайном. Разработчики не создавали приложения' },
+            yahoo:      { name: 'YAHOO MSG', years: '1998-2018', cause: 'ЭПОХА УШЛА',      color: '#9b59b6', emoji: '💬', description: 'Первый массовый мессенджер. Чат-комнаты и аська были символами эпохи' },
+            periscope:  { name: 'PERISCOPE', years: '2015-2021', cause: 'ЭФИР ОПУСТЕЛ',    color: '#e74c3c', emoji: '📡', description: 'Сервис прямых трансляций от Twitter. Не выдержал конкуренции' },
+            clubhouse:  { name: 'CLUBHOUSE', years: '2020-2023', cause: 'ТИШИНА',          color: '#f39c12', emoji: '🎙️', description: 'Аудио-соцсеть, взорвавшая рынок в пандемию. Мода прошла быстро' }
         };
 
         // ============ СОСТОЯНИЕ ============
@@ -473,33 +562,37 @@
         let tombstones = [];
         let currentViewIndex = 0;
         let isAnimating = false;
+        let selectedTombstone = null;
         
         // ============ THREE.JS ============
         const canvas = document.getElementById('canvas3D');
         const renderer = new THREE.WebGLRenderer({ 
             canvas: canvas,
             alpha: true,
-            antialias: false,
+            antialias: true,
             powerPreference: 'high-performance'
         });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
         
         const scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x050510, 5, 20);
+        
         const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 50);
         camera.position.set(0, 1.6, 0);
         
         // Освещение
-        const ambientLight = new THREE.AmbientLight(0x444466, 0.8);
+        const ambientLight = new THREE.AmbientLight(0x222244, 0.6);
         scene.add(ambientLight);
         
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        const moonLight = new THREE.DirectionalLight(0x4466aa, 0.4);
+        moonLight.position.set(-5, 5, -3);
+        scene.add(moonLight);
+        
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.3);
         dirLight.position.set(1, 3, 2);
         scene.add(dirLight);
-        
-        const pointLight = new THREE.PointLight(0xff00ff, 0.3, 8);
-        pointLight.position.set(0, 2, 0);
-        scene.add(pointLight);
         
         // Пол для 3D режима
         const groundGeometry = new THREE.PlaneGeometry(30, 30);
@@ -511,7 +604,33 @@
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         ground.visible = false;
+        ground.receiveShadow = true;
         scene.add(ground);
+        
+        // Сетка на полу
+        const gridHelper = new THREE.PolarGridHelper(15, 32, 24, 64, 0x00f7ff, 0x00f7ff);
+        gridHelper.position.y = 0.01;
+        gridHelper.visible = false;
+        scene.add(gridHelper);
+        
+        // Частицы тумана
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 200;
+        const posArray = new Float32Array(particlesCount * 3);
+        for(let i = 0; i < particlesCount * 3; i += 3) {
+            posArray[i] = (Math.random() - 0.5) * 20;
+            posArray[i+1] = Math.random() * 3;
+            posArray[i+2] = (Math.random() - 0.5) * 20;
+        }
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.02,
+            color: 0x00f7ff,
+            transparent: true,
+            opacity: 0.3
+        });
+        const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particles);
         
         // ============ DOM ============
         const startScreen = document.getElementById('startScreen');
@@ -523,6 +642,12 @@
         const modeIndicator = document.getElementById('modeIndicator');
         const toast = document.getElementById('toast');
         const errorMsg = document.getElementById('errorMsg');
+        const infoCard = document.getElementById('infoCard');
+        const infoOverlay = document.getElementById('infoOverlay');
+        const infoEmoji = document.getElementById('infoEmoji');
+        const infoName = document.getElementById('infoName');
+        const infoYears = document.getElementById('infoYears');
+        const infoCause = document.getElementById('infoCause');
         
         function showToast(msg) {
             toast.textContent = msg;
@@ -535,50 +660,120 @@
             counterEl.textContent = '🪦 ' + tombstones.length;
         }
         
+        function showInfoCard(productId) {
+            const p = PRODUCTS[productId];
+            infoEmoji.textContent = p.emoji;
+            infoName.textContent = p.name;
+            infoYears.textContent = p.years;
+            infoCause.textContent = p.cause;
+            infoCard.classList.add('visible');
+            infoOverlay.classList.add('visible');
+            if (navigator.vibrate) navigator.vibrate(30);
+        }
+        
+        function hideInfoCard() {
+            infoCard.classList.remove('visible');
+            infoOverlay.classList.remove('visible');
+        }
+        
+        // ============ СОЗДАНИЕ КРАСИВОГО НАДГРОБИЯ ============
         function createTombstoneMesh(productId) {
             const p = PRODUCTS[productId];
             const group = new THREE.Group();
+            const color = new THREE.Color(p.color);
             
-            // Основание
-            const baseGeo = new THREE.BoxGeometry(2, 0.3, 0.8);
-            const baseMat = new THREE.MeshStandardMaterial({ color: 0x0a0a14, roughness: 0.9 });
-            const base = new THREE.Mesh(baseGeo, baseMat);
-            base.position.y = 0.15;
-            group.add(base);
-            
-            // Плита
-            const blockGeo = new THREE.BoxGeometry(1.8, 2.5, 0.3);
-            const blockMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.85 });
-            const block = new THREE.Mesh(blockGeo, blockMat);
-            block.position.y = 1.55;
-            group.add(block);
-            
-            // Рамка
-            const frameGeo = new THREE.BoxGeometry(1.95, 2.65, 0.08);
-            const frameColor = new THREE.Color(p.color);
-            const frameMat = new THREE.MeshStandardMaterial({ 
-                color: frameColor,
-                emissive: frameColor,
-                emissiveIntensity: 1.5,
-                roughness: 0.3,
+            // Постамент (основание)
+            const baseGeo = new THREE.BoxGeometry(2.2, 0.4, 1);
+            const baseMat = new THREE.MeshStandardMaterial({ 
+                color: 0x1a1a2e,
+                roughness: 0.4,
                 metalness: 0.6
             });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.y = 0.2;
+            base.castShadow = true;
+            base.receiveShadow = true;
+            group.add(base);
+            
+            // Декоративная полоска на постаменте
+            const stripeGeo = new THREE.BoxGeometry(2.3, 0.1, 1.1);
+            const stripeMat = new THREE.MeshStandardMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.8,
+                roughness: 0.2,
+                metalness: 0.8
+            });
+            const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+            stripe.position.y = 0.4;
+            group.add(stripe);
+            
+            // Основная плита (надгробие)
+            const stoneGeo = new THREE.BoxGeometry(1.8, 2.8, 0.4);
+            const stoneMat = new THREE.MeshStandardMaterial({ 
+                color: 0x2a2a3e,
+                roughness: 0.3,
+                metalness: 0.5
+            });
+            const stone = new THREE.Mesh(stoneGeo, stoneMat);
+            stone.position.y = 1.8;
+            stone.castShadow = true;
+            stone.receiveShadow = true;
+            group.add(stone);
+            
+            // Верхняя часть (полукруглая)
+            const topGeo = new THREE.CylinderGeometry(0.9, 0.9, 0.3, 16);
+            const topMat = new THREE.MeshStandardMaterial({
+                color: 0x2a2a3e,
+                roughness: 0.3,
+                metalness: 0.5
+            });
+            const top = new THREE.Mesh(topGeo, topMat);
+            top.position.y = 3.2;
+            group.add(top);
+            
+            // Неоновая рамка
+            const frameGeo = new THREE.BoxGeometry(2, 3, 0.05);
+            const frameMat = new THREE.MeshStandardMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 2,
+                roughness: 0.1,
+                metalness: 0.9
+            });
             const frame = new THREE.Mesh(frameGeo, frameMat);
-            frame.position.set(0, 1.55, -0.15);
+            frame.position.set(0, 1.85, -0.2);
             group.add(frame);
             
-            // Свечение
-            const glowGeo = new THREE.PlaneGeometry(3, 2);
-            const glowMat = new THREE.MeshBasicMaterial({ 
-                color: frameColor,
+            // Свечение вокруг рамки
+            const glowGeo = new THREE.BoxGeometry(2.2, 3.2, 0.02);
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: color,
                 transparent: true,
-                opacity: 0.4,
+                opacity: 0.3,
                 side: THREE.DoubleSide
             });
             const glow = new THREE.Mesh(glowGeo, glowMat);
-            glow.rotation.x = -Math.PI / 2;
-            glow.position.y = 0.01;
+            glow.position.set(0, 1.85, -0.22);
             group.add(glow);
+            
+            // Свечение снизу (подсветка земли)
+            const groundGlowGeo = new THREE.PlaneGeometry(3, 2);
+            const groundGlowMat = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.2,
+                side: THREE.DoubleSide
+            });
+            const groundGlow = new THREE.Mesh(groundGlowGeo, groundGlowMat);
+            groundGlow.rotation.x = -Math.PI / 2;
+            groundGlow.position.y = 0.01;
+            group.add(groundGlow);
+            
+            // Точечный источник света
+            const pointLight = new THREE.PointLight(color, 0.4, 5);
+            pointLight.position.set(0, 1.5, 0.5);
+            group.add(pointLight);
             
             group.userData = { 
                 color: p.color, 
@@ -650,7 +845,7 @@
             if (navigator.vibrate) navigator.vibrate(50);
         }
         
-        // ============ ФУНКЦИЯ ПЕРЕЛЁТА К НАДГРОБИЮ ============
+        // ============ ПЕРЕЛЁТ К НАДГРОБИЮ ============
         function flyToTombstone(index) {
             if (tombstones.length === 0 || isAnimating) return;
             
@@ -658,31 +853,24 @@
             const target = tombstones[index];
             const targetPos = target.position.clone();
             
-            // Позиция камеры: перед надгробием, чуть выше
-            const directionToCamera = new THREE.Vector3(0, 0, -1);
-            directionToCamera.applyQuaternion(target.quaternion);
-            
             const cameraTargetPos = targetPos.clone()
-                .add(new THREE.Vector3(0, 2, 0)) // Поднимаем камеру
-                .add(directionToCamera.multiplyScalar(-3)); // Отодвигаем назад
+                .add(new THREE.Vector3(0, 2, 0))
+                .add(new THREE.Vector3(0, 0, -3));
             
             const startPos = camera.position.clone();
             const startTime = Date.now();
-            const duration = 1000; // 1 секунда
+            const duration = 1000;
             
             function animateFly() {
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(elapsed / duration, 1);
                 
-                // Плавное движение с ускорением и замедлением
                 const ease = progress < 0.5 
                     ? 2 * progress * progress 
                     : 1 - Math.pow(-2 * progress + 2, 2) / 2;
                 
                 camera.position.lerpVectors(startPos, cameraTargetPos, ease);
-                
-                // Поворачиваем камеру на надгробие
-                camera.lookAt(targetPos.x, targetPos.y + 1, targetPos.z);
+                camera.lookAt(targetPos.x, targetPos.y + 1.5, targetPos.z);
                 
                 if (progress < 1) {
                     requestAnimationFrame(animateFly);
@@ -707,6 +895,41 @@
             currentViewIndex = (currentViewIndex + 1) % tombstones.length;
         }
         
+        // ============ ОБРАБОТКА КЛИКОВ ПО НАДГРОБИЯМ ============
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        function onCanvasClick(event) {
+            if (isAnimating) return;
+            
+            // Получаем координаты клика
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            
+            const intersects = raycaster.intersectObjects(tombstones, true);
+            
+            if (intersects.length > 0) {
+                // Нашли надгробие
+                let obj = intersects[0].object;
+                while (obj && !obj.userData.productId) {
+                    obj = obj.parent;
+                }
+                if (obj && obj.userData.productId) {
+                    showInfoCard(obj.userData.productId);
+                }
+            }
+        }
+        
+        canvas.addEventListener('click', onCanvasClick);
+        canvas.addEventListener('touchend', (e) => {
+            if (e.target === canvas) {
+                onCanvasClick(e.changedTouches[0]);
+            }
+        });
+        
         function start3DMode() {
             currentMode = '3d';
             startScreen.classList.add('hidden');
@@ -718,7 +941,9 @@
             arReticle.classList.remove('visible');
             
             scene.background = new THREE.Color(0x050510);
+            scene.fog = new THREE.Fog(0x050510, 5, 20);
             ground.visible = true;
+            gridHelper.visible = true;
             camera.position.set(0, 1.6, 0);
             modeIndicator.textContent = '3D 🌐';
             showToast('🌐 3D режим');
@@ -753,8 +978,10 @@
                 arReticle.classList.add('visible');
                 
                 scene.background = null;
+                scene.fog = null;
                 renderer.setClearColor(0x000000, 0);
                 ground.visible = false;
+                gridHelper.visible = false;
                 camera.position.set(0, 1.6, 0);
                 modeIndicator.textContent = 'AR 📷';
                 showToast('📷 AR режим');
@@ -816,7 +1043,6 @@
             clearAll();
         });
         
-        // Кнопка-счётчик: перелёт к надгробиям
         counterEl.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -828,6 +1054,9 @@
             e.stopPropagation();
             flyToNextTombstone();
         });
+        
+        document.getElementById('infoClose').addEventListener('click', hideInfoCard);
+        infoOverlay.addEventListener('click', hideInfoCard);
         
         document.getElementById('productRow').addEventListener('click', (e) => {
             const chip = e.target.closest('.product-chip');
@@ -842,6 +1071,7 @@
         function animate() {
             requestAnimationFrame(animate);
             
+            // Анимация появления надгробий
             tombstones.forEach(tombstone => {
                 if (tombstone.scale.x < 0.5) {
                     tombstone.scale.x += 0.05;
@@ -852,6 +1082,9 @@
                     }
                 }
             });
+            
+            // Анимация частиц тумана
+            particles.rotation.y += 0.0002;
             
             renderer.render(scene, camera);
         }
@@ -871,7 +1104,8 @@
         });
         
         console.log('🪦 Киберкладбище загружено');
-        console.log('👆 Нажмите на счётчик 🪦 для облёта надгробий');
+        console.log('👆 Кликайте на надгробия для информации');
+        console.log('👆 Нажмите на счётчик 🪦 для облёта');
     </script>
 </body>
 </html>
