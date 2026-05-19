@@ -548,6 +548,9 @@
             transition: all 0.3s;
             width: 100%;
             max-width: 200px;
+            pointer-events: auto;
+            position: relative;
+            z-index: 202;
         }
 
         .info-card-close:active {
@@ -643,7 +646,7 @@
         let isAnimating = false;
         let audioContext = null;
         
-        // Для мобильных кликов - отслеживаем начало касания
+        // Для мобильных кликов
         let touchStartTime = 0;
         let touchStartX = 0;
         let touchStartY = 0;
@@ -726,10 +729,7 @@
         if (exitBtn) {
             exitBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                exitToMainPage();
-            });
-            exitBtn.addEventListener('touchend', (e) => {
-                e.preventDefault();
+                e.stopPropagation();
                 exitToMainPage();
             });
         }
@@ -755,9 +755,15 @@
             counterEl.textContent = '🪦 ' + tombstones.length;
         }
         
-        function hideInfoCard() {
+        // ИСПРАВЛЕННАЯ функция закрытия карточки
+        function hideInfoCard(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
             infoCard.classList.remove('visible');
             infoOverlay.classList.remove('visible');
+            console.log('Карточка закрыта');
         }
         
         function showInfoCard(productId) {
@@ -836,7 +842,6 @@
             const group = new THREE.Group();
             const color = new THREE.Color(p.color);
             
-            // Постамент
             const baseGeo = new THREE.BoxGeometry(2.2, 0.4, 1.0);
             const baseMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.3, metalness: 0.7 });
             const base = new THREE.Mesh(baseGeo, baseMat);
@@ -844,7 +849,6 @@
             base.userData = { productId: productId, isClickable: true };
             group.add(base);
             
-            // Неоновая полоса
             const stripeGeo = new THREE.BoxGeometry(2.3, 0.06, 1.1);
             const stripeMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 1.2 });
             const stripe = new THREE.Mesh(stripeGeo, stripeMat);
@@ -852,7 +856,6 @@
             stripe.userData = { productId: productId, isClickable: true };
             group.add(stripe);
             
-            // Основная плита
             const stoneGeo = new THREE.BoxGeometry(1.8, 2.6, 0.45);
             const nameTexture = createTextureWithText(p.name, p.color, '#1a1a2e');
             const stoneMat = new THREE.MeshStandardMaterial({ map: nameTexture, roughness: 0.4, metalness: 0.4 });
@@ -861,7 +864,6 @@
             stone.userData = { productId: productId, isClickable: true };
             group.add(stone);
             
-            // Крест
             const crossVertical = new THREE.BoxGeometry(0.12, 0.7, 0.12);
             const crossHorizontal = new THREE.BoxGeometry(0.45, 0.12, 0.12);
             const crossMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 1 });
@@ -874,7 +876,6 @@
             crossH.userData = { productId: productId, isClickable: true };
             group.add(crossH);
             
-            // Неоновая рамка
             const frameGeo = new THREE.BoxGeometry(2.0, 2.8, 0.05);
             const frameMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 2.0 });
             const frame = new THREE.Mesh(frameGeo, frameMat);
@@ -882,7 +883,6 @@
             frame.userData = { productId: productId, isClickable: true };
             group.add(frame);
             
-            // Свечение на земле
             const groundGlowGeo = new THREE.PlaneGeometry(3.0, 2.2);
             const groundGlowMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
             const groundGlow = new THREE.Mesh(groundGlowGeo, groundGlowMat);
@@ -891,7 +891,6 @@
             groundGlow.userData = { productId: productId, isClickable: true };
             group.add(groundGlow);
             
-            // Свеча
             const candleBase = new THREE.CylinderGeometry(0.12, 0.15, 0.5, 8);
             const candleMat = new THREE.MeshStandardMaterial({ color: 0xf5f5dc, roughness: 0.5 });
             const candle = new THREE.Mesh(candleBase, candleMat);
@@ -899,7 +898,6 @@
             candle.userData = { productId: productId, isClickable: true };
             group.add(candle);
             
-            // Пламя
             const flameGeo = new THREE.SphereGeometry(0.07, 8, 8);
             const flameMat = new THREE.MeshBasicMaterial({ color: 0xffa500 });
             const flame = new THREE.Mesh(flameGeo, flameMat);
@@ -907,7 +905,6 @@
             flame.userData = { productId: productId, isClickable: true };
             group.add(flame);
             
-            // Источники света
             const candleLight = new THREE.PointLight(0xffa500, 0.25, 1.8);
             candleLight.position.set(0, 0.45, 0.65);
             group.add(candleLight);
@@ -1004,13 +1001,12 @@
             currentViewIndex = (currentViewIndex + 1) % tombstones.length;
         }
 
-        // --- ГЛАВНОЕ: Улучшенный обработчик кликов для мобильных устройств ---
+        // --- Raycaster для кликов ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         
         function checkClick(clientX, clientY) {
             if (isAnimating || !currentMode) {
-                console.log('Клик заблокирован: анимация или нет режима');
                 return false;
             }
             
@@ -1020,7 +1016,6 @@
             
             raycaster.setFromCamera(mouse, camera);
             
-            // Собираем все кликабельные объекты
             const clickableObjects = [];
             scene.traverse(obj => {
                 if (obj.isMesh && obj.userData && (obj.userData.isClickable || obj.userData.isTombstone)) {
@@ -1035,7 +1030,6 @@
                 let obj = hit.object;
                 let productId = null;
                 
-                // Поиск productId вверх по иерархии
                 while (obj) {
                     if (obj.userData && obj.userData.productId) {
                         productId = obj.userData.productId;
@@ -1049,7 +1043,6 @@
                 }
                 
                 if (productId) {
-                    console.log('Клик успешен! productId:', productId);
                     showInfoCard(productId);
                     return true;
                 }
@@ -1057,7 +1050,7 @@
             return false;
         }
         
-        // Обработчик для мобильных устройств (touch)
+        // Обработчики для canvas
         function onTouchStart(e) {
             e.preventDefault();
             const touch = e.touches[0];
@@ -1078,29 +1071,25 @@
         
         function onTouchEnd(e) {
             e.preventDefault();
-            // Если палец не двигался - это клик
             if (!isTouchMoving && e.changedTouches.length > 0) {
                 const touch = e.changedTouches[0];
                 checkClick(touch.clientX, touch.clientY);
             }
-            // Сбрасываем флаги
             setTimeout(() => {
                 isTouchMoving = false;
             }, 50);
         }
         
-        // Обработчик для мыши (ПК)
         function onMouseClick(e) {
             checkClick(e.clientX, e.clientY);
         }
         
-        // Регистрируем обработчики
         canvas.addEventListener('touchstart', onTouchStart, { passive: false });
         canvas.addEventListener('touchmove', onTouchMove, { passive: false });
         canvas.addEventListener('touchend', onTouchEnd);
         canvas.addEventListener('click', onMouseClick);
         
-        // Drag для 3D режима (вращение сцены)
+        // Drag для 3D режима
         let lastDragX = 0;
         let isDragging = false;
         
@@ -1125,9 +1114,8 @@
             isDragging = false;
         });
         
-        // Для мобильного драга (вращение)
         canvas.addEventListener('touchmove', (e) => {
-            if (currentMode === '3d' && !isAnimating && e.touches.length === 1) {
+            if (currentMode === '3d' && !isAnimating && e.touches.length === 1 && !isTouchMoving) {
                 const touch = e.touches[0];
                 if (lastDragX !== 0) {
                     const deltaX = touch.clientX - lastDragX;
@@ -1258,20 +1246,44 @@
         document.getElementById('clearBtn').addEventListener('click', (e) => { e.preventDefault(); clearAll(); });
         counterEl.addEventListener('click', (e) => { e.preventDefault(); flyToNextTombstone(); });
         
+        // ИСПРАВЛЕННЫЕ обработчики для кнопки закрытия
         if (infoCloseBtn) {
-            infoCloseBtn.addEventListener('click', hideInfoCard);
-            infoCloseBtn.addEventListener('touchend', hideInfoCard);
+            infoCloseBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                hideInfoCard();
+            });
+            infoCloseBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                hideInfoCard();
+            });
+            // Предотвращаем всплытие от кнопки
+            infoCloseBtn.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+            });
         }
         
-        infoOverlay.addEventListener('click', hideInfoCard);
-        infoOverlay.addEventListener('touchend', hideInfoCard);
+        // Закрытие по клику на оверлей
+        infoOverlay.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            hideInfoCard();
+        });
+        infoOverlay.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            hideInfoCard();
+        });
         
+        // Закрытие по Escape
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && infoCard.classList.contains('visible')) {
                 hideInfoCard();
             }
         });
         
+        // Выбор продукта
         document.getElementById('productRow').addEventListener('click', (e) => {
             const chip = e.target.closest('.product-chip');
             if (!chip) return;
@@ -1297,11 +1309,11 @@
                     if (child.isPointLight && child.color && child.color.getHex() === 0xffa500) {
                         child.intensity = 0.2 + Math.sin(time * 8) * 0.08;
                     }
-                    if (child.material && child.material.emissiveIntensity) {
+                    if (child.material && child.material.emissiveIntensity !== undefined) {
                         const intensity = 1.5 + Math.sin(time * 3) * 0.3;
                         child.material.emissiveIntensity = intensity;
                     }
-                    if (child.geometry && child.geometry.type === 'SphereGeometry' && child.material && child.material.color.getHex() === 0xffa500) {
+                    if (child.geometry && child.geometry.type === 'SphereGeometry' && child.material && child.material.color && child.material.color.getHex() === 0xffa500) {
                         const scale = 0.07 + Math.sin(time * 15) * 0.02;
                         child.scale.set(scale / 0.07, scale / 0.07, scale / 0.07);
                     }
@@ -1324,8 +1336,7 @@
             if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
         });
         
-        console.log('🪦 Киберкладбище v3.5 — мобильные клики исправлены!');
-        console.log('👆 На телефоне: просто коснитесь надгробия');
+        console.log('🪦 Киберкладбище v3.6 — кнопка закрытия исправлена!');
     </script>
 </body>
 </html>
